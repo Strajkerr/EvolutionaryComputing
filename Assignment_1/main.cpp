@@ -202,74 +202,75 @@ void nearestNeighbourSolution(int** distanceMatrix, std::vector<int>& nodeCostVe
     int nodesToVisit = (numberOfNodes % 2 == 0) ? (numberOfNodes / 2) : ((numberOfNodes + 1) / 2);
 
     std::mt19937 rng(std::random_device{}());
+    std::uniform_int_distribution<int> startDist(0, numberOfNodes - 1);
 
     long long totalSum = 0;
     int bestObjective = std::numeric_limits<int>::max();
     int worstObjective = std::numeric_limits<int>::min();
     std::vector<int> bestSolution;
 
-    for (int startNode = 0; startNode < numberOfNodes; ++startNode) {
-        for (int run = 0; run < numberOfSolutionsPerStart; ++run) {
-            std::vector<int> routeNodes;
-            routeNodes.reserve(nodesToVisit);
-            std::vector<char> isNodeUsed(numberOfNodes, 0);
+    int totalRuns = numberOfSolutionsPerStart * numberOfNodes;
+    for (int run = 0; run < totalRuns; ++run) {
+        int startNode = startDist(rng);
 
-            routeNodes.push_back(startNode);
-            isNodeUsed[startNode] = 1;
+        std::vector<int> routeNodes;
+        routeNodes.reserve(nodesToVisit);
+        std::vector<char> isNodeUsed(numberOfNodes, 0);
 
-            while ((int)routeNodes.size() < nodesToVisit) {
-                int bestObjectiveDelta = std::numeric_limits<int>::max();
-                std::vector<int> candidates;
-                int bestInsertionPosition = 0;
+        routeNodes.push_back(startNode);
+        isNodeUsed[startNode] = 1;
 
-                for (int candidateNode = 0; candidateNode < numberOfNodes; ++candidateNode) {
-                    if (isNodeUsed[candidateNode]) continue;
+        while ((int)routeNodes.size() < nodesToVisit) {
+            int bestObjectiveDelta = std::numeric_limits<int>::max();
+            std::vector<int> candidates;
 
-                    for (size_t insertionPosition = 0; insertionPosition <= routeNodes.size(); ++insertionPosition) {
-                        int predecessorNode = (insertionPosition == 0) ? -1 : routeNodes[insertionPosition - 1];
-                        int successorNode = (insertionPosition == routeNodes.size()) ? -1 : routeNodes[insertionPosition];
+            for (int candidateNode = 0; candidateNode < numberOfNodes; ++candidateNode) {
+                if (isNodeUsed[candidateNode]) continue;
 
-                        int addedDistance = 0;
-                        if (predecessorNode != -1) addedDistance += distanceMatrix[predecessorNode][candidateNode];
-                        if (successorNode != -1) addedDistance += distanceMatrix[candidateNode][successorNode];
+                for (size_t insertionPosition = 0; insertionPosition <= routeNodes.size(); ++insertionPosition) {
+                    int predecessorNode = (insertionPosition == 0) ? -1 : routeNodes[insertionPosition - 1];
+                    int successorNode = (insertionPosition == routeNodes.size()) ? -1 : routeNodes[insertionPosition];
 
-                        int removedDistance = 0;
-                        if (predecessorNode != -1 && successorNode != -1) removedDistance = distanceMatrix[predecessorNode][successorNode];
+                    int addedDistance = 0;
+                    if (predecessorNode != -1) addedDistance += distanceMatrix[predecessorNode][candidateNode];
+                    if (successorNode != -1) addedDistance += distanceMatrix[candidateNode][successorNode];
 
-                        int objectiveDelta = nodeCostVector[candidateNode] + (addedDistance - removedDistance);
+                    int removedDistance = 0;
+                    if (predecessorNode != -1 && successorNode != -1) removedDistance = distanceMatrix[predecessorNode][successorNode];
 
-                        if (objectiveDelta < bestObjectiveDelta) {
-                            bestObjectiveDelta = objectiveDelta;
-                            candidates.clear();
-                            candidates.push_back(static_cast<int>(insertionPosition) << 24 | candidateNode);
-                        } else if (objectiveDelta == bestObjectiveDelta) {
-                            candidates.push_back(static_cast<int>(insertionPosition) << 24 | candidateNode);
-                        }
+                    int objectiveDelta = nodeCostVector[candidateNode] + (addedDistance - removedDistance);
+
+                    if (objectiveDelta < bestObjectiveDelta) {
+                        bestObjectiveDelta = objectiveDelta;
+                        candidates.clear();
+                        candidates.push_back(static_cast<int>(insertionPosition) << 24 | candidateNode);
+                    } else if (objectiveDelta == bestObjectiveDelta) {
+                        candidates.push_back(static_cast<int>(insertionPosition) << 24 | candidateNode);
                     }
                 }
-
-                if (candidates.empty()) break;
-                std::uniform_int_distribution<int> pick(0, (int)candidates.size() - 1);
-                int chosen = candidates[pick(rng)];
-                int chosenInsertion = (chosen >> 24) & 0xFF;
-                int chosenCandidate = chosen & 0xFFFFFF;
-
-                routeNodes.insert(routeNodes.begin() + chosenInsertion, chosenCandidate);
-                isNodeUsed[chosenCandidate] = 1;
             }
 
-            int objectiveValue = evaluateSolution(routeNodes, distanceMatrix, nodeCostVector);
-            totalSum += objectiveValue;
-            if (objectiveValue < bestObjective) {
-                bestObjective = objectiveValue;
-                bestSolution = routeNodes;
-            }
-            if (objectiveValue > worstObjective) worstObjective = objectiveValue;
+            if (candidates.empty()) break;
+            std::uniform_int_distribution<int> pick(0, (int)candidates.size() - 1);
+            int chosen = candidates[pick(rng)];
+            int chosenInsertion = (chosen >> 24) & 0xFF;
+            int chosenCandidate = chosen & 0xFFFFFF;
+
+            routeNodes.insert(routeNodes.begin() + chosenInsertion, chosenCandidate);
+            isNodeUsed[chosenCandidate] = 1;
         }
+
+        int objectiveValue = evaluateSolution(routeNodes, distanceMatrix, nodeCostVector);
+        totalSum += objectiveValue;
+        if (objectiveValue < bestObjective) {
+            bestObjective = objectiveValue;
+            bestSolution = routeNodes;
+        }
+        if (objectiveValue > worstObjective) worstObjective = objectiveValue;
     }
 
-    double averageObjective = static_cast<double>(totalSum) / (numberOfNodes * numberOfSolutionsPerStart);
-    std::cout << "====== Nearest neighbor (insert anywhere) ======\n";
+    double averageObjective = static_cast<double>(totalSum) / totalRuns;
+    std::cout << "====== Nearest neighbor ======\n";
     std::cout << "  min = " << bestObjective << "\n";
     std::cout << "  max = " << worstObjective << "\n";
     std::cout << "  avg = " << averageObjective << "\n";
@@ -286,85 +287,82 @@ void fullyGreedySolution(int** distanceMatrix, std::vector<int>& nodeCostVector,
     int nodesToVisit = (numberOfNodes % 2 == 0) ? (numberOfNodes / 2) : ((numberOfNodes + 1) / 2);
 
     std::mt19937 rng(std::random_device{}());
-
-    std::vector<int> bestSolution;
-    int bestScore = std::numeric_limits<int>::max();
+    std::uniform_int_distribution<int> secondNodeDist(0, numberOfNodes - 1);
 
     long long totalSum = 0;
     int bestObjective = std::numeric_limits<int>::max();
     int worstObjective = std::numeric_limits<int>::min();
+    std::vector<int> bestSolution;
+    int bestScore = std::numeric_limits<int>::max();
 
     for (int startNode = 0; startNode < numberOfNodes; ++startNode) {
         for (int run = 0; run < numberOfSolutionsPerStart; ++run) {
-            std::vector<int> routeNodes;
-            routeNodes.reserve(nodesToVisit);
-            std::vector<char> isUsed(numberOfNodes, 0);
+            std::vector<int> cycle;
+            cycle.reserve(nodesToVisit);
+            std::vector<char> used(numberOfNodes, 0);
 
-            routeNodes.push_back(startNode);
-            isUsed[startNode] = 1;
+            cycle.push_back(startNode);
+            used[startNode] = 1;
+            if (nodesToVisit > 1) {
+                int second = secondNodeDist(rng);
+                while (used[second]) second = secondNodeDist(rng);
+                cycle.push_back(second);
+                used[second] = 1;
+            }
 
-            while ((int)routeNodes.size() < nodesToVisit) {
+            while ((int)cycle.size() < nodesToVisit) {
                 int bestDelta = std::numeric_limits<int>::max();
-                std::vector<int> candidates;
-                int bestInsertPos = 0;
+                std::vector<std::pair<int,int>> candidates;
 
-                for (int candidate = 0; candidate < numberOfNodes; ++candidate) {
-                    if (isUsed[candidate]) continue;
-
-                    for (size_t insertPos = 0; insertPos <= routeNodes.size(); ++insertPos) {
-                        int pred = (insertPos == 0) ? -1 : routeNodes[insertPos - 1];
-                        int succ = (insertPos == routeNodes.size()) ? -1 : routeNodes[insertPos];
-
-                        int added = 0;
-                        if (pred != -1) added += distanceMatrix[pred][candidate];
-                        if (succ != -1) added += distanceMatrix[candidate][succ];
-
-                        int removed = 0;
-                        if (pred != -1 && succ != -1) removed = distanceMatrix[pred][succ];
-
-                        int delta = nodeCostVector[candidate] + (added - removed);
-
+                for (int node = 0; node < numberOfNodes; ++node) {
+                    if (used[node]) continue;
+                    for (size_t i = 0; i < cycle.size(); ++i) {
+                        int pred = cycle[i];
+                        int succ = cycle[(i + 1) % cycle.size()];
+                        int added = distanceMatrix[pred][node] + distanceMatrix[node][succ];
+                        int removed = distanceMatrix[pred][succ];
+                        int delta = nodeCostVector[node] + (added - removed);
                         if (delta < bestDelta) {
                             bestDelta = delta;
                             candidates.clear();
-                            candidates.push_back(static_cast<int>(insertPos) << 24 | candidate);
+                            candidates.emplace_back(static_cast<int>(i + 1), node);
                         } else if (delta == bestDelta) {
-                            candidates.push_back(static_cast<int>(insertPos) << 24 | candidate);
+                            candidates.emplace_back(static_cast<int>(i + 1), node);
                         }
                     }
                 }
 
                 if (candidates.empty()) break;
                 std::uniform_int_distribution<int> pick(0, (int)candidates.size() - 1);
-                int chosen = candidates[pick(rng)];
-                int chosenInsert = (chosen >> 24) & 0xFF;
-                int chosenCandidate = chosen & 0xFFFFFF;
-
-                routeNodes.insert(routeNodes.begin() + chosenInsert, chosenCandidate);
-                isUsed[chosenCandidate] = 1;
+                auto chosen = candidates[pick(rng)];
+                int insertPos = chosen.first % (int)(cycle.size() + 1);
+                int chosenNode = chosen.second;
+                cycle.insert(cycle.begin() + insertPos, chosenNode);
+                used[chosenNode] = 1;
             }
 
-            int score = evaluateSolution(routeNodes, distanceMatrix, nodeCostVector);
+            int score = 0;
+            if (!cycle.empty()) {
+                for (size_t i = 0; i < cycle.size(); ++i) {
+                    score += nodeCostVector[cycle[i]];
+                    score += distanceMatrix[cycle[i]][cycle[(i + 1) % cycle.size()]];
+                }
+            }
+
             totalSum += score;
             if (score < bestObjective) bestObjective = score;
             if (score > worstObjective) worstObjective = score;
-
-            if (score < bestScore) {
-                bestScore = score;
-                bestSolution = std::move(routeNodes);
-            }
+            if (score < bestScore) { bestScore = score; bestSolution = cycle; }
         }
     }
 
     double average = static_cast<double>(totalSum) / (numberOfNodes * numberOfSolutionsPerStart);
-
-    std::cout << "====== Greedy cycle ======" << std::endl;
+    std::cout << "====== Fully greedy ======" << std::endl;
     std::cout << "  min = " << bestObjective << std::endl;
     std::cout << "  max = " << worstObjective << std::endl;
     std::cout << "  avg = " << average << std::endl;
-
     std::cout << "Best solution score: " << bestScore << std::endl;
-    std::cout << "Best solution: ";
+    std::cout << "Best solution (cycle): ";
     for (const auto& n : bestSolution) std::cout << n << " ";
     std::cout << std::endl;
 }
@@ -378,19 +376,16 @@ int main() {
 
     int size = data.size();
     int** distanceMatrix = getDistanceMatrix(data, size);
+    
     std::vector<int> costVector = getCostVector(data);
 
-    // Running all algorithms
+
     randomSolution(distanceMatrix, costVector, size);
     std::cout << std::endl;
-    // Nearest Neighbour algorithm (only adding at the end)
     nearestNeighbourSolutionOnlyAtEnd(distanceMatrix, costVector, size);
     std::cout << std::endl;
-
-    // Nearest Neighbour algorithm (adding anywhere)
     nearestNeighbourSolution(distanceMatrix, costVector, size);
     std::cout << std::endl;
-    // Fully Greedy algorithm
     fullyGreedySolution(distanceMatrix, costVector, size);      
     std::cout << std::endl;
 
