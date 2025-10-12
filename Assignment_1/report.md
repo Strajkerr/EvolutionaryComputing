@@ -53,4 +53,4 @@ Best found solution:
 
 ### Link to the source code (Github repository - directory Assignment 1)
 
-[text](https://github.com/Strajkerr/EvolutionaryComputing/tree/main/Assignment_1)
+[Assignment 1 - Greedy Heuristic](https://github.com/Strajkerr/EvolutionaryComputing/tree/main/Assignment_1)
