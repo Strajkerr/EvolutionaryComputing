@@ -88,6 +88,8 @@ void randomSolution (int** distanceMatrix, std::vector<int>& costVector, int& da
     int numberOfNodesToVisit = dataSize / 2;
     std::vector<int> bestSolution;
     int bestSolutionScore = INT_MAX;
+    int worstSolutionScore = INT_MIN;
+    float avgScore = 0.0f;
     for (int i = 0; i < 200; i++) {
         std::vector<int> currentSolution;
         while (currentSolution.size() < numberOfNodesToVisit) {
@@ -96,14 +98,23 @@ void randomSolution (int** distanceMatrix, std::vector<int>& costVector, int& da
                 currentSolution.push_back(randomNode);
             }
         }
-        if (evaluateSolution(currentSolution, distanceMatrix, costVector) < bestSolutionScore) {
+        int currentScore = evaluateSolution(currentSolution, distanceMatrix, costVector);
+        if (currentScore < bestSolutionScore) {
             bestSolution = currentSolution;
             bestSolutionScore = evaluateSolution(currentSolution, distanceMatrix, costVector);
         }
+        
+        if (currentScore > worstSolutionScore) {
+            worstSolutionScore = currentScore;
+        }
+
+        avgScore += currentScore;
     }
 
+    avgScore /= 200;
+
     std::cout << "====== Random solution ======" << std::endl;
-    std::cout << "Best solution score: " << bestSolutionScore << std::endl;
+    std::cout << "Best solution score: " << bestSolutionScore << " | Worst solution score: " << worstSolutionScore << " | Average score: " << avgScore << std::endl;
     std::cout << "Best solution: ";
     for (const auto& node : bestSolution) {
         std::cout << node << " ";
@@ -133,6 +144,8 @@ void nearestNeighbourSolutionOnlyAtEnd (int** distanceMatrix, std::vector<int>& 
     int numberOfNodesToVisit = dataSize / 2;
     std::vector<int> bestSolution;
     int bestSolutionScore = INT_MAX;
+    int worstSolutionScore = INT_MIN;
+    float avgScore = 0.0f;
     for (int i = 0; i < 200; i++) {
         std::vector<int> currentSolution;
         int startingNode = rand() % dataSize;
@@ -154,14 +167,24 @@ void nearestNeighbourSolutionOnlyAtEnd (int** distanceMatrix, std::vector<int>& 
                 break;
             }
         }
-        if (evaluateSolution(currentSolution, distanceMatrix, costVector) < bestSolutionScore) {
+
+        int currentScore = evaluateSolution(currentSolution, distanceMatrix, costVector);
+        if (currentScore < bestSolutionScore) {
             bestSolution = currentSolution;
-            bestSolutionScore = evaluateSolution(currentSolution, distanceMatrix, costVector);
+            bestSolutionScore = currentScore;
         }
+        
+        if (currentScore > worstSolutionScore) {
+            worstSolutionScore = currentScore;
+        }
+
+        avgScore += currentScore;
     }
 
+    avgScore /= 200;
+
     std::cout << "====== Nearest Neighbour solution only adding at the end ======" << std::endl;
-    std::cout << "Best solution score: " << bestSolutionScore << std::endl;
+    std::cout << "Best solution score: " << bestSolutionScore << " | Worst solution score: " << worstSolutionScore << " | Average score: " << avgScore << std::endl;
     std::cout << "Best solution: ";
     for (const auto& node : bestSolution) {
         std::cout << node << " ";
