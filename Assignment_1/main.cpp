@@ -61,6 +61,15 @@ int main() {
         return 1;
     }
 
+    int size = data.size();
+    int** distanceMatrix = getDistanceMatrix(data, size);
     
+    std::cout << distanceMatrix[0][1] << std::endl;
+
+    for (int i = 0; i < size; i++) {
+        delete[] distanceMatrix[i];
+    }
+    delete[] distanceMatrix;
+
     return 0;
 }
