@@ -16,8 +16,16 @@ instances defined only by distance matrices.
 ### Random solution
 
 #### Pseudocode
-``` cpp
-    
+``` pseudocode
+    solution <- []
+    if dataSize % 2 not equal 0 then dataSize = dataSize + 1
+    numberOfNodesToVisit <- dataSize / 2
+    while size of solution < numberOfNodesToVisit:
+        randomNode <- random integer in [0, dataSize)
+        if randomNode not in currentSolution:
+            append randomNode to currentSolution
+        end if
+    end while
 ```
 
 #### Results
@@ -32,11 +40,52 @@ Best found solution:
 86 6 59 8 34 156 74 91 182 103 127 163 153 168 148 44 164 185 18 194 70 97 176 116 120 54 10 146 111 72 154 31 132 50 184 100 95 93 7 82 1 90 183 191 19 126 63 197 166 198 94 79 181 22 23 53 139 11 137 138 57 5 15 162 41 161 151 117 51 46 48 28 55 109 133 21 65 42 29 47 145 125 196 130 121 40 12 0 69 78 108 123 81 101 129 62 66 140 99 113
 ```
 
+![](random_solution.png)
+
 ### Nearest neighbour considering adding the node onlyt at the end of the current path
 
 #### Pseudocode
-``` cpp
-    
+```
+    procedure GET_BEST_NEAREST_NEIGHBOUR(currentNode, unvisitedNodes, distanceMatrix, costVector)
+        bestNode ← -1
+        bestScore ← +∞
+
+        for each node in unvisitedNodes do
+            score ← distanceMatrix[currentNode][node] + costVector[node]
+            if score < bestScore then
+                bestScore ← score
+                bestNode ← node
+            end if
+        end for
+
+        return bestNode
+    end procedure
+
+    procedure NEAREST_NEIGHBOUR_SOLUTION_ONLY_AT_END(distanceMatrix, costVector, dataSize)
+        set random seed to current time
+
+        if dataSize is odd then
+            increment dataSize by 1
+        end if
+
+        numberOfNodesToVisit ← dataSize / 2
+        currentSolution ← empty list
+        startingNode ← random integer in [0, dataSize)
+        append startingNode to currentSolution
+
+        unvisitedNodes ← all nodes except startingNode
+
+        while size of currentSolution < numberOfNodesToVisit:
+            nextNode ← GET_BEST_NEAREST_NEIGHBOUR(currentSolution.last, unvisitedNodes, distanceMatrix, costVector)
+
+            if nextNode = −1 then
+                break
+            end if
+
+            append nextNode to currentSolution
+            remove nextNode from unvisitedNodes
+        end while
+    end procedure
 ```
 
 #### Results
@@ -51,6 +100,7 @@ Best found solution:
 154 180 53 63 176 80 151 59 65 116 42 193 41 139 115 46 0 183 143 117 93 18 22 34 160 184 123 135 70 127 162 133 79 94 97 101 1 152 120 78 145 185 40 165 90 81 113 175 171 16 31 44 92 57 106 49 144 62 14 178 52 55 129 2 75 86 26 100 121 148 137 23 186 89 114 15 9 102 138 21 164 7 95 39 27 196 179 25 82 167 124 51 118 43 149 131 112 4 177 54
 ```
 
+![](neighbour_end.png)
 ### Link to the source code (Github repository - directory Assignment 1)
 
 [Assignment 1 - Greedy Heuristic](https://github.com/Strajkerr/EvolutionaryComputing/tree/main/Assignment_1)
