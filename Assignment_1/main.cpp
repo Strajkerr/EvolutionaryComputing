@@ -6,6 +6,8 @@
 #include <cmath>
 #include <vector>
 #include <algorithm>
+#include <cstdlib>
+#include <ctime>
 
 
 bool getDataFromFile (const std::string& filename, std::vector<std::vector<int>>& data) {
@@ -78,11 +80,33 @@ int evaluateSolution (std::vector<int>& solution, int** distanceMatrix, std::vec
 }
 
 void randomSolution (int** distanceMatrix, std::vector<int>& costVector, int& dataSize) {
+    srand(time(NULL));
     if (dataSize % 2 != 0){
         dataSize++;
     }
     int numberOfNodesToVisit = dataSize / 2;
+    std::vector<int> bestSolution;
+    int bestSolutionScore = INT_MAX;
+    for (int i = 0; i < 200; i++) {
+        std::vector<int> currentSolution;
+        while (currentSolution.size() < numberOfNodesToVisit) {
+            int randomNode = rand() % dataSize;
+            if (std::find(currentSolution.begin(), currentSolution.end(), randomNode) == currentSolution.end()) {
+                currentSolution.push_back(randomNode);
+            }
+        }
+        if (evaluateSolution(currentSolution, distanceMatrix, costVector) < bestSolutionScore) {
+            bestSolution = currentSolution;
+            bestSolutionScore = evaluateSolution(currentSolution, distanceMatrix, costVector);
+        }
+    }
 
+    std::cout << "====== Random solution ======" << std::endl;
+    std::cout << "Best solution score: " << bestSolutionScore << std::endl;
+    std::cout << "Best solution: ";
+    for (const auto& node : bestSolution) {
+        std::cout << node << " ";
+    }
 }
 
 int main() {
@@ -95,9 +119,10 @@ int main() {
 
     int size = data.size();
     int** distanceMatrix = getDistanceMatrix(data, size);
-    
     std::vector<int> costVector = getCostVector(data);
 
+    // Running all algorithms
+    randomSolution(distanceMatrix, costVector, size);
 
     for (int i = 0; i < size; i++) {
         delete[] distanceMatrix[i];
