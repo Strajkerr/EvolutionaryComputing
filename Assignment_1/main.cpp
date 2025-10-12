@@ -79,6 +79,7 @@ int evaluateSolution (std::vector<int>& solution, int** distanceMatrix, std::vec
     return totalCost;
 }
 
+// Random solution algorithm
 void randomSolution (int** distanceMatrix, std::vector<int>& costVector, int& dataSize) {
     srand(time(NULL));
     if (dataSize % 2 != 0){
@@ -107,6 +108,65 @@ void randomSolution (int** distanceMatrix, std::vector<int>& costVector, int& da
     for (const auto& node : bestSolution) {
         std::cout << node << " ";
     }
+    std::cout << std::endl;
+}
+
+// Nearest Neighbour algorithm (only adding at the end)
+int getBestNearestNeighbour (int currentNode, std::vector<int>& unvisitedNodes, int** distanceMatrix, std::vector<int>& costVector) {
+    int bestNode = -1;
+    int bestScore = INT_MAX;
+    for (const auto& node : unvisitedNodes) {
+        if (distanceMatrix[currentNode][node] + costVector[node] < bestScore) {
+            bestScore = distanceMatrix[currentNode][node] + costVector[node];
+            bestNode = node;
+        }
+    }
+
+    return bestNode;
+}
+
+void nearestNeighbourSolutionOnlyAtEnd (int** distanceMatrix, std::vector<int>& costVector, int& dataSize) {
+    srand(time(NULL));
+    if (dataSize % 2 != 0){
+        dataSize++;
+    }
+    int numberOfNodesToVisit = dataSize / 2;
+    std::vector<int> bestSolution;
+    int bestSolutionScore = INT_MAX;
+    for (int i = 0; i < 200; i++) {
+        std::vector<int> currentSolution;
+        int startingNode = rand() % dataSize;
+        currentSolution.push_back(startingNode);
+
+        std::vector<int> unvisitedNodes;
+        for (int j = 0; j < dataSize; j++) {
+            if (j != startingNode) {
+                unvisitedNodes.push_back(j);
+            }
+        }
+
+        while (currentSolution.size() < numberOfNodesToVisit) {
+            int nextNode = getBestNearestNeighbour(currentSolution.back(), unvisitedNodes, distanceMatrix, costVector);
+            if (nextNode != -1) {
+                currentSolution.push_back(nextNode);
+                unvisitedNodes.erase(std::remove(unvisitedNodes.begin(), unvisitedNodes.end(), nextNode), unvisitedNodes.end());
+            } else {
+                break;
+            }
+        }
+        if (evaluateSolution(currentSolution, distanceMatrix, costVector) < bestSolutionScore) {
+            bestSolution = currentSolution;
+            bestSolutionScore = evaluateSolution(currentSolution, distanceMatrix, costVector);
+        }
+    }
+
+    std::cout << "====== Nearest Neighbour solution only adding at the end ======" << std::endl;
+    std::cout << "Best solution score: " << bestSolutionScore << std::endl;
+    std::cout << "Best solution: ";
+    for (const auto& node : bestSolution) {
+        std::cout << node << " ";
+    }
+    std::cout << std::endl;
 }
 
 int main() {
@@ -123,6 +183,10 @@ int main() {
 
     // Running all algorithms
     randomSolution(distanceMatrix, costVector, size);
+    std::cout << std::endl;
+    // Nearest Neighbour algorithm (only adding at the end)
+    nearestNeighbourSolutionOnlyAtEnd(distanceMatrix, costVector, size);
+    std::cout << std::endl;
 
     for (int i = 0; i < size; i++) {
         delete[] distanceMatrix[i];
