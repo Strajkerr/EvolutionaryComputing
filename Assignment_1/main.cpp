@@ -3,6 +3,10 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <cmath>
+#include <vector>
+#include <algorithm>
+
 
 bool getDataFromFile(const std::string& filename, std::vector<std::vector<int>>& data) {
     std::ifstream file("../TSPA.csv");
@@ -31,6 +35,22 @@ bool getDataFromFile(const std::string& filename, std::vector<std::vector<int>>&
 
     file.close();
     return true;
+}
+
+std::vector<std::vector<int>> computeDistanceMatrix(const std::vector<std::vector<int>>& data) {
+    int n = data.size();
+    std::vector<std::vector<int>> dist(n, std::vector<int>(n, 0));
+
+    for (int i = 0; i < n; ++i) {
+        for (int j = i + 1; j < n; ++j) {
+            double dx = data[i][0] - data[j][0];
+            double dy = data[i][1] - data[j][1];
+            int d = static_cast<int>(std::round(std::sqrt(dx * dx + dy * dy)));
+            dist[i][j] = dist[j][i] = d;
+        }
+    }
+
+    return dist;
 }
 
 int main() {
