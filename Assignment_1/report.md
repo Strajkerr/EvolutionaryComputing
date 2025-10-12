@@ -52,3 +52,5 @@ Best found solution:
 ```
 
 ### Link to the source code (Github repository - directory Assignment 1)
+
+https://github.com/Strajkerr/EvolutionaryComputing/tree/main/Assignment_1
