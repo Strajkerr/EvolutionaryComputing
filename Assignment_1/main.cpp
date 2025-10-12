@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <cmath>
 
 bool getDataFromFile(const std::string& filename, std::vector<std::vector<int>>& data) {
     std::ifstream file("../TSPA.csv");
@@ -33,6 +34,25 @@ bool getDataFromFile(const std::string& filename, std::vector<std::vector<int>>&
     return true;
 }
 
+int getEuclidanDistance(int x1, int y1, int x2, int y2) {
+    return static_cast<int>(std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2)));
+}
+
+int** getDistanceMatrix(std::vector<std::vector<int>>& data, int& size) {
+    int** distanceMatrix = new int*[size];
+    for (int16_t i  = 0; i < size; i++) {
+        distanceMatrix[i] = new int[size];
+        for (int16_t j = 0; j < size; j++) {
+            if (i == j)
+                distanceMatrix[i][j] = 0;
+            else
+                distanceMatrix[i][j] = getEuclidanDistance(data[i][0], data[i][1], data[j][0], data[j][1]);
+        }
+    }
+
+    return distanceMatrix;
+}
+
 int main() {
     const std::string FILE_NAME = "../TSPA.csv";
     std::vector<std::vector<int>> data;
@@ -41,6 +61,15 @@ int main() {
         return 1;
     }
 
+    int size = data.size();
+    int** distanceMatrix = getDistanceMatrix(data, size);
     
+    std::cout << distanceMatrix[0][1] << std::endl;
+
+    for (int i = 0; i < size; i++) {
+        delete[] distanceMatrix[i];
+    }
+    delete[] distanceMatrix;
+
     return 0;
 }
