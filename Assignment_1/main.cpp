@@ -5,7 +5,7 @@
 #include <sstream>
 #include <cmath>
 
-bool getDataFromFile(const std::string& filename, std::vector<std::vector<int>>& data) {
+bool getDataFromFile (const std::string& filename, std::vector<std::vector<int>>& data) {
     std::ifstream file("../TSPA.csv");
     if (!file.is_open()) {
         std::cerr << "Error: Could not open the file!" << std::endl;
@@ -34,11 +34,11 @@ bool getDataFromFile(const std::string& filename, std::vector<std::vector<int>>&
     return true;
 }
 
-int getEuclidanDistance(int x1, int y1, int x2, int y2) {
+int getEuclidanDistance (int x1, int y1, int x2, int y2) {
     return static_cast<int>(std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2)));
 }
 
-int** getDistanceMatrix(std::vector<std::vector<int>>& data, int& size) {
+int** getDistanceMatrix (std::vector<std::vector<int>>& data, int& size) {
     int** distanceMatrix = new int*[size];
     for (int16_t i  = 0; i < size; i++) {
         distanceMatrix[i] = new int[size];
@@ -53,6 +53,18 @@ int** getDistanceMatrix(std::vector<std::vector<int>>& data, int& size) {
     return distanceMatrix;
 }
 
+std::vector<int> getCostVector (std::vector<std::vector<int>>& data) {
+    std::vector<int> nodeCosts;
+    for (const auto& row : data) {
+        nodeCosts.push_back(row[2]);
+    }
+
+    data.clear();
+    return nodeCosts;
+}
+
+// void randomSolution ()
+
 int main() {
     const std::string FILE_NAME = "../TSPA.csv";
     std::vector<std::vector<int>> data;
@@ -64,7 +76,8 @@ int main() {
     int size = data.size();
     int** distanceMatrix = getDistanceMatrix(data, size);
     
-    std::cout << distanceMatrix[0][1] << std::endl;
+    std::vector<int> costVector = getCostVector(data);
+
 
     for (int i = 0; i < size; i++) {
         delete[] distanceMatrix[i];
