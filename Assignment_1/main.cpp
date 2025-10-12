@@ -66,7 +66,24 @@ std::vector<int> getCostVector (std::vector<std::vector<int>>& data) {
     return nodeCosts;
 }
 
-// void randomSolution ()
+int evaluateSolution (std::vector<int>& solution, int** distanceMatrix, std::vector<int>& costVector) {
+    int totalCost = 0;
+    for (size_t i = 0; i < solution.size(); ++i) {
+        totalCost += costVector[solution[i]];
+        if (i > 0) {
+            totalCost += distanceMatrix[solution[i - 1]][solution[i]];
+        }
+    }
+    return totalCost;
+}
+
+void randomSolution (int** distanceMatrix, std::vector<int>& costVector, int& dataSize) {
+    if (dataSize % 2 != 0){
+        dataSize++;
+    }
+    int numberOfNodesToVisit = dataSize / 2;
+
+}
 
 int main() {
     const std::string FILE_NAME = "../TSPA.csv";
