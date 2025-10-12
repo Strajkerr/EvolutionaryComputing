@@ -4,6 +4,9 @@
 #include <vector>
 #include <sstream>
 #include <cmath>
+#include <vector>
+#include <algorithm>
+
 
 bool getDataFromFile (const std::string& filename, std::vector<std::vector<int>>& data) {
     std::ifstream file("../TSPA.csv");
