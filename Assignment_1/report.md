@@ -101,6 +101,233 @@ Best found solution:
 ```
 
 ![](neighbour_end.png)
+
+### Nearest neighbor considering adding the node at all possible position, i.e. at the end, at the beginning, or at any place inside the current path
+
+
+#### Pseudocode
+```
+procedure NEAREST_NEIGHBOUR_SOLUTION(distanceMatrix, nodeCostVector, numberOfNodes, numberOfSolutionsPerStart = 200)
+    if numberOfNodes <= 0 then
+        return
+    end if
+
+    if numberOfNodes is even then
+        nodesToVisit ← numberOfNodes / 2
+    else
+        nodesToVisit ← (numberOfNodes + 1) / 2
+    end if
+
+    initialize random generator rng
+    totalRuns ← numberOfSolutionsPerStart * numberOfNodes
+
+    totalSum ← 0
+    bestObjective ← +∞
+    worstObjective ← −∞
+    bestSolution ← empty list
+
+    for run from 1 to totalRuns do
+        startNode ← random integer in [0, numberOfNodes)
+        routeNodes ← list containing startNode
+        isNodeUsed ← boolean array of size numberOfNodes initialized to false
+        isNodeUsed[startNode] ← true
+
+        while size(routeNodes) < nodesToVisit do
+            bestObjectiveDelta ← +∞
+            candidates ← empty list
+
+            for candidateNode from 0 to numberOfNodes − 1 do
+                if isNodeUsed[candidateNode] then
+                    continue
+                end if
+
+                for insertionPosition from 0 to size(routeNodes) do
+                    if insertionPosition == 0 then
+                        predecessor ← NONE
+                    else
+                        predecessor ← routeNodes[insertionPosition − 1]
+                    end if
+
+                    if insertionPosition == size(routeNodes) then
+                        successor ← NONE
+                    else
+                        successor ← routeNodes[insertionPosition]
+                    end if
+
+                    addedDistance ← 0
+                    if predecessor != NONE then addedDistance ← addedDistance + distanceMatrix[predecessor][candidateNode] end if
+                    if successor != NONE then addedDistance ← addedDistance + distanceMatrix[candidateNode][successor] end if
+
+                    removedDistance ← 0
+                    if predecessor != NONE and successor != NONE then
+                        removedDistance ← distanceMatrix[predecessor][successor]
+                    end if
+
+                    objectiveDelta ← nodeCostVector[candidateNode] + (addedDistance − removedDistance)
+
+                    if objectiveDelta < bestObjectiveDelta then
+                        bestObjectiveDelta ← objectiveDelta
+                        candidates ← list containing pair(insertionPosition, candidateNode)
+                    else if objectiveDelta == bestObjectiveDelta then
+                        append pair(insertionPosition, candidateNode) to candidates
+                    end if
+                end for
+            end for
+
+            if candidates is empty then
+                break
+            end if
+
+            chosenPair ← uniformly random choice from candidates using rng
+            chosenInsertion ← chosenPair.insertionPosition
+            chosenCandidate ← chosenPair.candidateNode
+
+            insert chosenCandidate into routeNodes at position chosenInsertion
+            isNodeUsed[chosenCandidate] ← true
+        end while
+
+        objectiveValue ← EVALUATE_SOLUTION(routeNodes, distanceMatrix, nodeCostVector)
+        totalSum ← totalSum + objectiveValue
+
+        if objectiveValue < bestObjective then
+            bestObjective ← objectiveValue
+            bestSolution ← copy of routeNodes
+        end if
+
+        if objectiveValue > worstObjective then
+            worstObjective ← objectiveValue
+        end if
+    end for
+
+    averageObjective ← totalSum / totalRuns
+    print "min =", bestObjective, " max =", worstObjective, " avg =", averageObjective
+    print "Best solution:", bestSolution
+end procedure
+
+procedure EVALUATE_SOLUTION(routeNodes, distanceMatrix, nodeCostVector)
+    totalCost ← 0
+    for i from 0 to size(routeNodes) − 1 do
+        totalCost ← totalCost + nodeCostVector[routeNodes[i]]
+        if i > 0 then
+            totalCost ← totalCost + distanceMatrix[routeNodes[i − 1]][routeNodes[i]]
+        end if
+    end for
+    return totalCost
+end procedure
+```
+
+#### Results
+
+| Best score | Worst score | Average score |
+| --- | --- | --- |
+| 69941 | 73650 | 71071.2 |
+
+Best found solution:
+
+```
+196 81 90 165 119 40 185 106 178 14 144 62 9 148 102 49 52 55 57 129 92 179 145 78 31 56 113 175 171 16 25 44 120 2 75 101 1 152 97 26 100 86 53 154 70 135 180 94 63 79 133 127 123 162 151 51 80 176 137 23 186 89 183 143 0 117 93 140 68 46 139 115 118 59 65 116 43 184 35 84 112 4 190 10 177 54 48 160 34 181 42 5 41 193 159 146 22 18 69 108 
+```
+
+![](neighbour_solution.png)
+
+### Greedy solution
+
+#### Pseudocode
+``` pseudocode
+    procedure FULLY_GREEDY_SOLUTION(distanceMatrix, nodeCostVector, numberOfNodes, numberOfSolutionsPerStart = 200)
+    if numberOfNodes <= 0 then return
+
+    nodesToVisit ← if numberOfNodes is even then numberOfNodes / 2 else (numberOfNodes + 1) / 2
+    initialize random generator rng
+    define secondNodeDist uniform int in [0, numberOfNodes - 1]
+
+    totalSum ← 0
+    bestObjective ← +∞
+    worstObjective ← −∞
+    bestSolution ← empty list
+    bestScore ← +∞
+
+    for startNode from 0 to numberOfNodes - 1 do
+        for run from 1 to numberOfSolutionsPerStart do
+            cycle ← empty list (reserve nodesToVisit)
+            used ← boolean array sized numberOfNodes initialized to false
+
+            append startNode to cycle
+            used[startNode] ← true
+
+            if nodesToVisit > 1 then
+                second ← random integer from secondNodeDist
+                while used[second] do
+                    second ← random integer from secondNodeDist
+                end while
+                append second to cycle
+                used[second] ← true
+            end if
+
+            while size(cycle) < nodesToVisit do
+                bestDelta ← +∞
+                candidates ← empty list of pairs(insertPosition, node)
+
+                for node from 0 to numberOfNodes - 1 do
+                    if used[node] then continue
+                    for i from 0 to size(cycle) - 1 do
+                        pred ← cycle[i]
+                        succ ← cycle[(i + 1) mod size(cycle)]
+                        added ← distanceMatrix[pred][node] + distanceMatrix[node][succ]
+                        removed ← distanceMatrix[pred][succ]
+                        delta ← nodeCostVector[node] + (added - removed)
+
+                        if delta < bestDelta then
+                            bestDelta ← delta
+                            candidates ← list containing pair(i + 1, node)
+                        else if delta == bestDelta then
+                            append pair(i + 1, node) to candidates
+                        end if
+                    end for
+                end for
+
+                if candidates is empty then break
+
+                chosen ← uniformly random element from candidates using rng
+                insertPos ← chosen.insertPosition mod (size(cycle) + 1)
+                chosenNode ← chosen.node
+                insert chosenNode into cycle at position insertPos
+                used[chosenNode] ← true
+            end while
+
+            score ← 0
+            if cycle not empty then
+                for i from 0 to size(cycle) - 1 do
+                    score ← score + nodeCostVector[cycle[i]]
+                    score ← score + distanceMatrix[cycle[i]][cycle[(i + 1) mod size(cycle)]]
+                end for
+            end if
+
+            totalSum ← totalSum + score
+            if score < bestObjective then bestObjective ← score
+            if score > worstObjective then worstObjective ← score
+            if score < bestScore then bestScore ← score; bestSolution ← copy of cycle
+        end for
+    end for
+
+    average ← totalSum / (numberOfNodes * numberOfSolutionsPerStart)
+end procedure
+```
+
+#### Results
+
+| Best score | Worst score | Average score |
+| --- | --- | --- |
+| 70285 | 76228 | 72694.4|
+
+Best found solution:
+
+```
+40 119 185 52 55 57 129 92 179 145 78 31 56 113 175 171 16 25 44 120 2 75 86 100 26 101 1 97 152 124 94 63 53 180 154 135 70 127 123 112 4 84 35 184 190 10 177 54 48 160 34 181 146 22 18 108 69 159 193 41 139 68 46 115 5 42 43 116 65 59 118 51 162 151 133 79 80 176 137 0 117 143 183 89 23 186 15 148 9 62 102 144 14 49 178 106 165 90 81 196
+```
+
+![](greedy_solution.png)
+
 ### Link to the source code (Github repository - directory Assignment 1)
 
 [Assignment 1 - Greedy Heuristic](https://github.com/Strajkerr/EvolutionaryComputing/tree/main/Assignment_1)
