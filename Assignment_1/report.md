@@ -1,5 +1,10 @@
 # Assignment 1 - Greedy heuristic
 
+### Prepared by
+
+- Marianna Myszkowska 156041
+- Jakub Liszyński 156060
+
 ### Problem descirption
 We are given three columns of integers with a row for each node. The first two columns contain x
 and y coordinates of the node positions in a plane. The third column contains node costs. The goal is
