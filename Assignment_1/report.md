@@ -328,7 +328,8 @@ Best found solution:
 
 ![](greedy_solution.png)
 
-all the best paths were evaluated using our own checker in python:
+- All the best paths were evaluated using our own checker in python:
+
 --- path_random ---
 Length: 100, Max index: 198, Inferred nodes: 199
 Duplicates: None
