@@ -328,6 +328,35 @@ Best found solution:
 
 ![](greedy_solution.png)
 
+all the best paths were evaluated using our own checker in python:
+--- path_random ---
+Length: 100, Max index: 198, Inferred nodes: 199
+Duplicates: None
+Out of range indices: None
+Missing indices count: 100
+Missing indices (first 20): [2, 3, 4, 9, 13, 14, 16, 17, 20, 24, 25, 26, 27, 30, 32, 33, 35, 36, 37, 38] ...
+
+--- path_neigbour_end ---
+Length: 100, Max index: 196, Inferred nodes: 197
+Duplicates: None
+Out of range indices: None
+Missing indices count: 100
+Missing indices (first 20): [3, 5, 6, 8, 10, 11, 12, 13, 17, 19, 20, 24, 28, 29, 30, 32, 33, 35, 36, 37] ...
+
+--- path_neighbour ---
+Length: 100, Max index: 196, Inferred nodes: 197
+Duplicates: None
+Out of range indices: None
+Missing indices count: 100
+Missing indices (first 20): [3, 6, 7, 8, 11, 12, 13, 15, 17, 19, 20, 21, 24, 27, 28, 29, 30, 32, 33, 36] ...
+
+--- path_greedy ---
+Length: 100, Max index: 196, Inferred nodes: 197
+Duplicates: None
+Out of range indices: None
+Missing indices count: 100
+Missing indices (first 20): [3, 6, 7, 8, 11, 12, 13, 17, 19, 20, 21, 24, 27, 28, 29, 30, 32, 33, 36, 37] ...
+
 ### Link to the source code (Github repository - directory Assignment 1)
 
 [Assignment 1 - Greedy Heuristic](https://github.com/Strajkerr/EvolutionaryComputing/tree/main/Assignment_1)
