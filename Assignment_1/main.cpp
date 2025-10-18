@@ -4,7 +4,6 @@
 #include <vector>
 #include <sstream>
 #include <cmath>
-#include <vector>
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
@@ -15,7 +14,7 @@
 
 
 bool getDataFromFile (const std::string& filename, std::vector<std::vector<int>>& data) {
-    std::ifstream file("../TSPA.csv");
+    std::ifstream file("../TSPB.csv");
     if (!file.is_open()) {
         std::cerr << "Error: Could not open the file!" << std::endl;
         return false;
