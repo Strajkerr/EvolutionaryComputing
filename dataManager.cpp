@@ -1,19 +1,27 @@
 #include "dataManager.h"
 
+#include <cstdint>
 #include <cmath>
 
 DataManager::DataManager(const std::vector<std::vector<int>>& inputData) {
     int size = inputData.size();
     this->distanceMatrix = new int*[size];
-    getDistanceMatrix(inputData, size);
-    getCostVector(inputData);
+    setDistanceMatrix(inputData, size);
+    setCostVector(inputData);
+}
+
+DataManager::~DataManager() {
+    int size = costVector.size();
+    for (int i = 0; i < size; i++)
+        delete[] distanceMatrix[i];
+    delete[] distanceMatrix;
 }
 
 int DataManager::getEuclidanDistance (int x1, int y1, int x2, int y2) {
         return static_cast<int>(std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2)));
     }
 
-void DataManager::getDistanceMatrix (const std::vector<std::vector<int>>& data, int& size) {
+void DataManager::setDistanceMatrix (const std::vector<std::vector<int>>& data, int& size) {
     for (int16_t i  = 0; i < size; i++) {
         this->distanceMatrix[i] = new int[size];
         for (int16_t j = 0; j < size; j++) {
@@ -25,7 +33,7 @@ void DataManager::getDistanceMatrix (const std::vector<std::vector<int>>& data, 
     }
 }
 
-void DataManager::getCostVector (const std::vector<std::vector<int>>& data) {
+void DataManager::setCostVector (const std::vector<std::vector<int>>& data) {
     for (const auto& row : data) {
         this->costVector.push_back(row[2]);
     }

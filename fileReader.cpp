@@ -2,11 +2,9 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <sstream>
 
 #include "fileReader.h"
-
-
-FileReader::FileReader(const std::string& filename) : filename(filename) {}
 
 bool FileReader::getDataFromFile (std::vector<std::vector<int>>& data) {
     std::ifstream file(this->filename);
