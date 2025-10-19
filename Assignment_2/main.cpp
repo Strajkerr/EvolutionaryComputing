@@ -216,9 +216,11 @@ void greedy2Regret(int **distanceMatrix, const std::vector<int> &nodeCostVector,
 }
 
 void greedyWeightedRegret(int** distanceMatrix, const std::vector<int>& nodeCostVector, 
-                          int numberOfNodes, double alpha = 0.5, int totalRuns = 100) {
+                          int numberOfNodes, double alpha = 0.5, int totalRuns = 200) {
 
     if (numberOfNodes <= 0) return;
+    
+    int nodesToVisit = (numberOfNodes % 2 == 0) ? (numberOfNodes / 2) : ((numberOfNodes + 1) / 2);
 
     std::mt19937 rng(std::random_device{}());
     std::uniform_int_distribution<int> startDist(0, numberOfNodes - 1);
@@ -238,7 +240,7 @@ void greedyWeightedRegret(int** distanceMatrix, const std::vector<int>& nodeCost
         routeNodes.push_back(startNode);
         isNodeUsed[startNode] = 1;
 
-        while ((int)routeNodes.size() < numberOfNodes) {
+        while ((int)routeNodes.size() < nodesToVisit) {
             int bestNode = -1;
             int bestInsertionPos = -1;
             double bestWeightedScore = std::numeric_limits<double>::lowest();
@@ -249,31 +251,23 @@ void greedyWeightedRegret(int** distanceMatrix, const std::vector<int>& nodeCost
                 std::vector<std::pair<int, int>> insertionData; // {cost, pos}
 
                 for (size_t pos = 0; pos <= routeNodes.size(); ++pos) {
-                    int pred = (pos == 0) ? -1 : routeNodes[pos - 1];
-                    int succ = (pos == routeNodes.size()) ? -1 : routeNodes[pos];
+                    int pred = (pos == 0) ? routeNodes.back() : routeNodes[pos - 1];
+                    int succ = (pos == routeNodes.size()) ? routeNodes.front() : routeNodes[pos];
 
-                    int added = 0;
-                    if (pred != -1) added += distanceMatrix[pred][candidateNode];
-                    if (succ != -1) added += distanceMatrix[candidateNode][succ];
-
-                    int removed = 0;
-                    if (pred != -1 && succ != -1) removed = distanceMatrix[pred][succ];
+                    int added = distanceMatrix[pred][candidateNode] + distanceMatrix[candidateNode][succ];
+                    int removed = (pred != succ) ? distanceMatrix[pred][succ] : 0;
 
                     int cost = nodeCostVector[candidateNode] + (added - removed);
                     insertionData.push_back({cost, (int)pos});
                 }
 
-                // Sort by cost to find best and second-best positions
                 std::sort(insertionData.begin(), insertionData.end());
                 
                 int bestInsertionCost = insertionData[0].first;
                 int regret = (insertionData.size() > 1)
                     ? (insertionData[1].first - insertionData[0].first)
-                    : 0;
+                    : bestInsertionCost;
 
-                // Normalize regret (higher is better - we want to prioritize nodes with high regret)
-                // Normalize objective change (lower cost is better - negate it)
-                // Weighted sum: alpha * regret - (1-alpha) * bestInsertionCost
                 double weightedScore = alpha * regret - (1.0 - alpha) * bestInsertionCost;
 
                 if (weightedScore > bestWeightedScore) {
@@ -289,8 +283,11 @@ void greedyWeightedRegret(int** distanceMatrix, const std::vector<int>& nodeCost
             isNodeUsed[bestNode] = 1;
         }
 
-        std::vector<int> mutableCostVector = nodeCostVector;
-        int totalCost = evaluateSolution(routeNodes, distanceMatrix, mutableCostVector);
+        int totalCost = 0;
+        for (size_t i = 0; i < routeNodes.size(); ++i) {
+            totalCost += nodeCostVector[routeNodes[i]];
+            totalCost += distanceMatrix[routeNodes[i]][routeNodes[(i + 1) % routeNodes.size()]];
+        }
 
         totalSum += totalCost;
         if (totalCost < bestObjective) {
@@ -312,10 +309,9 @@ void greedyWeightedRegret(int** distanceMatrix, const std::vector<int>& nodeCost
     std::cout << "  avg = " << averageObjective << "\n";
     std::cout << "Execution time: " << elapsedSeconds.count() << " seconds\n\n";
 
-    std::cout << "Best solution score: " << bestObjective << std::endl;
-    std::cout << "Best solution: ";
+    std::cout << "Best cycle route: ";
     for (const auto& n : bestSolution) std::cout << n << " ";
-    std::cout << std::endl;
+    std::cout << bestSolution.front() << " (back to start)\n";
 }
 
 int main()
@@ -339,8 +335,12 @@ int main()
         greedy2Regret(distanceMatrix, costVector, size);
         
         std::cout << "\nRunning Greedy Weighted Regret on file: " << FILE_NAME << std::endl;
+        std::cout << "Alpha = 0.2\n" << std::endl;
+        greedyWeightedRegret(distanceMatrix, costVector, size, 0.2);
+        std::cout << "Alpha = 0.5\n" << std::endl;
         greedyWeightedRegret(distanceMatrix, costVector, size, 0.5);
-        
+        std::cout << "Alpha = 0.7\n" << std::endl;
+        greedyWeightedRegret(distanceMatrix, costVector, size, 0.7);
         for (int i = 0; i < size; i++)
         {
             delete[] distanceMatrix[i];
