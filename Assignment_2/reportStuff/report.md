@@ -326,6 +326,8 @@ This assignment explored greedy regret-based heuristics for the TSP with node se
 
 ---
 
+### Outcomes were checked with the solution checker
+
 ### Link to the source code (Github repository - directory Assignment 2)
 
 [Assignment 2](https://github.com/Strajkerr/EvolutionaryComputing/tree/main/Assignment_2)
