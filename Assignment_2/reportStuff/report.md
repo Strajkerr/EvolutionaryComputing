@@ -154,53 +154,47 @@ We use the same cycle insertion model as in Greedy 2-regret: when evaluating an 
 
 #### Pseudocode
 ``` pseudocode
-procedure GREEDY_WEIGHTED_REGRET(distanceMatrix, nodeCost, dataSize, alpha, totalRuns)
     numberOfNodesToVisit ← ceil(dataSize / 2)
 
-    for run in 1..totalRuns do
-        used ← boolean array[dataSize] initialized to false
-        solution ← [random start node]
-        used[start] ← true
+    used ← boolean array[dataSize] initialized to false
+    solution ← [random start node]
+    used[start] ← true
 
-        while |solution| < numberOfNodesToVisit do
-            bestNode ← -1
-            bestPos ← -1
-            bestScore ← −∞
+    while |solution| < numberOfNodesToVisit do
+        bestNode ← -1
+        bestPos ← -1
+        bestScore ← −∞
 
-            for each candidate where used[candidate] = false do
-                insertionCosts ← empty list
+        for each candidate where used[candidate] = false do
+            insertionCosts ← empty list
 
-                for pos from 0 to |solution| do
-                    pred ← solution[pos−1] if pos > 0 else solution.back()
-                    succ ← solution[pos] if pos < |solution| else solution.front()
+            for pos from 0 to |solution| do
+                pred ← solution[pos−1] if pos > 0 else solution.back()
+                succ ← solution[pos] if pos < |solution| else solution.front()
 
-                    added ← dist[pred][candidate] + dist[candidate][succ]
-                    removed ← dist[pred][succ]
-                    cost ← nodeCost[candidate] + (added − removed)
-                    append (cost, pos) to insertionCosts
-                end for
-
-                sort insertionCosts by cost
-                bestCost ← insertionCosts[0].cost
-                secondBest ← insertionCosts[1].cost if exists else bestCost
-                regret ← secondBest − bestCost
-
-                score ← alpha·regret − (1−alpha)·bestCost
-                if score > bestScore then
-                    bestScore ← score
-                    bestNode ← candidate
-                    bestPos ← insertionCosts[0].pos
-                end if
+                added ← dist[pred][candidate] + dist[candidate][succ]
+                removed ← dist[pred][succ]
+                cost ← nodeCost[candidate] + (added − removed)
+                append (cost, pos) to insertionCosts
             end for
 
-            if bestNode = −1 or bestPos = −1 then break
-            insert bestNode at bestPos into solution
-            used[bestNode] ← true
-        end while
+            sort insertionCosts by cost
+            bestCost ← insertionCosts[0].cost
+            secondBest ← insertionCosts[1].cost if exists else bestCost
+            regret ← secondBest − bestCost
 
-        evaluate cycle objective (include closing edge)
-        track best/worst/average and time
-    end for
+            score ← alpha·regret − (1−alpha)·bestCost
+            if score > bestScore then
+                bestScore ← score
+                bestNode ← candidate
+                bestPos ← insertionCosts[0].pos
+            end if
+        end for
+
+        if bestNode = −1 or bestPos = −1 then break
+        insert bestNode at bestPos into solution
+        used[bestNode] ← true
+    end while
 ```
 
 #### Results TSPA (weighted - equal weights)
