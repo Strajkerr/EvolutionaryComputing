@@ -272,9 +272,132 @@ void M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(int **distanceMatrix,
     }
 }
 
+void M6_greedyFirstImprovement_TwoNodeExchange_GreedyStart(int **distanceMatrix, std::vector<int> &costVector, int size, int totalRuns = 200)
+{
+    if (size <= 0) return;
 
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::uniform_int_distribution<int> startDist(0, size - 1);
 
- int main()
+    long long totalSum = 0;
+    int bestObjective = std::numeric_limits<int>::max();
+    int worstObjective = std::numeric_limits<int>::min();
+    std::vector<int> bestSolution;
+
+    auto startTime = std::chrono::high_resolution_clock::now();
+
+    for (int run = 0; run < totalRuns; ++run)
+    {
+        // Greedy construction with random start node (insertion at best position)
+        int startNode = startDist(g);
+        std::vector<int> solution;
+        solution.push_back(startNode);
+
+        std::vector<char> used(size, 0);
+        used[startNode] = 1;
+
+        while ((int)solution.size() < size)
+        {
+            int bestCandidate = -1;
+            int bestPos = -1;
+            int bestCost = std::numeric_limits<int>::max();
+
+            for (int candidate = 0; candidate < size; ++candidate)
+            {
+                if (used[candidate]) continue;
+
+                // evaluate best insertion position for this candidate
+                for (int pos = 0; pos <= (int)solution.size(); ++pos)
+                {
+                    int added = 0;
+                    int removed = 0;
+                    if (pos > 0) added += distanceMatrix[solution[pos - 1]][candidate];
+                    if (pos < (int)solution.size()) added += distanceMatrix[candidate][solution[pos]];
+                    if (pos > 0 && pos < (int)solution.size()) removed = distanceMatrix[solution[pos - 1]][solution[pos]];
+
+                    int cost = costVector[candidate] + (added - removed);
+                    if (cost < bestCost)
+                    {
+                        bestCost = cost;
+                        bestCandidate = candidate;
+                        bestPos = pos;
+                    }
+                }
+            }
+
+            if (bestCandidate == -1) break;
+            solution.insert(solution.begin() + bestPos, bestCandidate);
+            used[bestCandidate] = 1;
+        }
+
+        int currentCost = evaluateSolution(solution, distanceMatrix, costVector);
+
+        bool improved = true;
+        while (improved)
+        {
+            improved = false;
+            std::vector<std::pair<int, int>> moves;
+            moves.reserve((size * (size - 1)) / 2);
+            for (int i = 0; i < size - 1; ++i)
+                for (int j = i + 1; j < size; ++j)
+                    moves.emplace_back(i, j);
+
+            std::shuffle(moves.begin(), moves.end(), g);
+
+            for (const auto &mv : moves)
+            {
+                int i = mv.first;
+                int j = mv.second;
+                std::swap(solution[i], solution[j]);
+                int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                if (newCost < currentCost)
+                {
+                    currentCost = newCost;
+                    improved = true;
+                    break; 
+                }
+                else
+                {
+                    std::swap(solution[i], solution[j]); 
+                }
+            }
+        }
+
+        totalSum += currentCost;
+        if (currentCost < bestObjective)
+        {
+            bestObjective = currentCost;
+            bestSolution = solution;
+        }
+        if (currentCost > worstObjective)
+            worstObjective = currentCost;
+    }
+
+    auto endTime = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsedSeconds = endTime - startTime;
+
+    double averageObjective = static_cast<double>(totalSum) / totalRuns;
+    std::cout << "====== M6 (Greedy First-Improvement, 2-node exchange, greedy start) ======\n";
+    std::cout << "  runs = " << totalRuns << "\n";
+    std::cout << "  min = " << bestObjective << "\n";
+    std::cout << "  max = " << worstObjective << "\n";
+    std::cout << "  avg = " << averageObjective << "\n";
+    std::cout << "Execution time: " << elapsedSeconds.count() << " seconds\n\n";
+
+    if (!bestSolution.empty())
+    {
+        std::cout << "Best cycle route: ";
+        for (const auto &n : bestSolution) std::cout << n << " ";
+        std::cout << bestSolution.front() << " (back to start)\n";
+    }
+    else
+    {
+        std::cout << "No solution found.\n";
+    }
+}
+
+int main()
 {
     std::vector<std::string> fileNames = {"../TSPA.csv", "../TSPB.csv"};
 
@@ -293,6 +416,9 @@ void M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(int **distanceMatrix,
 
         std::cout << "\nRunning M5 on file: " << FILE_NAME << std::endl;
         M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(distanceMatrix, costVector, size);
+
+        std::cout << "\nRunning M6 on file: " << FILE_NAME << std::endl;
+        M6_greedyFirstImprovement_TwoNodeExchange_GreedyStart(distanceMatrix, costVector, size);
 
         for (int i = 0; i < size; i++)
         {

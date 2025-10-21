@@ -24,10 +24,10 @@ instances defined only by distance matrices.
 
 | Method | Instance 1 (TSPA) | Instance 2 (TSPB) |
 |---|---:|---:|
-| Random solution | 263102 (231391 – 292542) | N/A |
-| Nearest neighbour (append only) | 83,234.5 (81,598 – 88,112) | N/A |
-| Nearest neighbour (insertion at best position) | 71,071.2 (69,941 – 73,650) | N/A |
-| Greedy (fully greedy insertion) | 72,694.4 (70,285 – 76,228) | N/A |
+| Random solution | 212,245 (194,822 – 234,932) | N/A |
+| Nearest neighbour (append only) | 52,662 (51,037 – 56,570) | N/A |
+| Nearest neighbour (insertion at best position) | 44,649.9 (43,163 – 51,497) | N/A |
+| Greedy (fully greedy insertion) | 50,345.1 (46,166 – 58,032) | N/A |
 | Greedy 2‑regret | 114,825 (105,864 – 123,334) | 72,370.8 (68,080 – 77,702) |
 | Greedy 2‑regret weighted (α=0.5) | 72,096.1 (71,062 – 73,532) | 50,842.2 (47,367 – 54,016) |
 | M1 — Steepest descent, 2-node exchange (random start) | N/A | N/A |
@@ -43,10 +43,10 @@ instances defined only by distance matrices.
 
 | Method | Instance 1 (TSPA) | Instance 2 (TSPB) |
 |---|---:|---:|
-| Random solution | N/A | N/A |
-| Nearest neighbour (append only) | N/A | N/A |
-| Nearest neighbour (insertion) | N/A | N/A |
-| Greedy (fully greedy insertion) | N/A | N/A |
+| Random solution | 0.0098 s | N/A |
+| Nearest neighbour (append only) | 0.0120 s | N/A |
+| Nearest neighbour (insertion) | 50.0508 s | N/A |
+| Greedy (fully greedy insertion) | 52.7421 s | N/A |
 | Greedy 2‑regret | 31.55 s | 31.67 s |
 | Greedy 2‑regret weighted (α=0.5) | 34.16 s | 34.35 s |
 | M1 — Steepest descent, 2-node exchange (random start) | N/A | N/A |
