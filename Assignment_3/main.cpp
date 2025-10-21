@@ -102,6 +102,64 @@ int evaluateSolution(std::vector<int> &solution, int **distanceMatrix, std::vect
     }
     return totalCost;
 }
+
+// new helper: greedy insertion start (reuse in M6)
+std::vector<int> constructGreedyInsertion(int **distanceMatrix, const std::vector<int> &costVector, int size, int startNode)
+{
+    std::vector<int> solution;
+    if (size <= 0) return solution;
+
+    solution.reserve(size);
+    solution.push_back(startNode);
+
+    std::vector<char> used(size, 0);
+    used[startNode] = 1;
+
+    while ((int)solution.size() < size)
+    {
+        int bestCandidate = -1;
+        int bestPos = -1;
+        int bestCost = std::numeric_limits<int>::max();
+
+        for (int candidate = 0; candidate < size; ++candidate)
+        {
+            if (used[candidate]) continue;
+
+            for (int pos = 0; pos <= (int)solution.size(); ++pos)
+            {
+                int added = 0;
+                int removed = 0;
+                if (pos > 0) added += distanceMatrix[solution[pos - 1]][candidate];
+                if (pos < (int)solution.size()) added += distanceMatrix[candidate][solution[pos]];
+                if (pos > 0 && pos < (int)solution.size()) removed = distanceMatrix[solution[pos - 1]][solution[pos]];
+
+                int cost = costVector[candidate] + (added - removed);
+                if (cost < bestCost)
+                {
+                    bestCost = cost;
+                    bestCandidate = candidate;
+                    bestPos = pos;
+                }
+            }
+        }
+
+        if (bestCandidate == -1) break;
+        solution.insert(solution.begin() + bestPos, bestCandidate);
+        used[bestCandidate] = 1;
+    }
+
+    return solution;
+}
+
+// new helper: create random permutation (reuse in M5)
+std::vector<int> randomPermutation(int size, std::mt19937 &g)
+{
+    std::vector<int> solution(size);
+    std::iota(solution.begin(), solution.end(), 0);
+    std::shuffle(solution.begin(), solution.end(), g);
+    return solution;
+}
+
 /*****************************************************************************************
 -----------------------------------------------------------------------------
  * METHODS OVERVIEW
@@ -199,9 +257,7 @@ void M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(int **distanceMatrix,
     for (int run = 0; run < totalRuns; ++run)
     {
         // random initial feasible solution (permutation of nodes)
-        std::vector<int> solution(size);
-        std::iota(solution.begin(), solution.end(), 0);
-        std::shuffle(solution.begin(), solution.end(), g);
+        std::vector<int> solution = randomPermutation(size, g);
 
         int currentCost = evaluateSolution(solution, distanceMatrix, costVector);
 
@@ -291,45 +347,7 @@ void M6_greedyFirstImprovement_TwoNodeExchange_GreedyStart(int **distanceMatrix,
     {
         // Greedy construction with random start node (insertion at best position)
         int startNode = startDist(g);
-        std::vector<int> solution;
-        solution.push_back(startNode);
-
-        std::vector<char> used(size, 0);
-        used[startNode] = 1;
-
-        while ((int)solution.size() < size)
-        {
-            int bestCandidate = -1;
-            int bestPos = -1;
-            int bestCost = std::numeric_limits<int>::max();
-
-            for (int candidate = 0; candidate < size; ++candidate)
-            {
-                if (used[candidate]) continue;
-
-                // evaluate best insertion position for this candidate
-                for (int pos = 0; pos <= (int)solution.size(); ++pos)
-                {
-                    int added = 0;
-                    int removed = 0;
-                    if (pos > 0) added += distanceMatrix[solution[pos - 1]][candidate];
-                    if (pos < (int)solution.size()) added += distanceMatrix[candidate][solution[pos]];
-                    if (pos > 0 && pos < (int)solution.size()) removed = distanceMatrix[solution[pos - 1]][solution[pos]];
-
-                    int cost = costVector[candidate] + (added - removed);
-                    if (cost < bestCost)
-                    {
-                        bestCost = cost;
-                        bestCandidate = candidate;
-                        bestPos = pos;
-                    }
-                }
-            }
-
-            if (bestCandidate == -1) break;
-            solution.insert(solution.begin() + bestPos, bestCandidate);
-            used[bestCandidate] = 1;
-        }
+        std::vector<int> solution = constructGreedyInsertion(distanceMatrix, costVector, size, startNode);
 
         int currentCost = evaluateSolution(solution, distanceMatrix, costVector);
 

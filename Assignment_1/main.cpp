@@ -15,7 +15,7 @@
 
 bool getDataFromFile(const std::string &filename, std::vector<std::vector<int>> &data)
 {
-    std::ifstream file("../TSPB.csv");
+    std::ifstream file("../TSPA.csv");
     if (!file.is_open())
     {
         std::cerr << "Error: Could not open the file!" << std::endl;
@@ -446,7 +446,7 @@ void fullyGreedySolution(int **distanceMatrix, std::vector<int> &nodeCostVector,
 }
 int main()
 {
-    const std::string FILE_NAME = "../TSPB.csv";
+    const std::string FILE_NAME = "../TSPA.csv";
     std::vector<std::vector<int>> data;
     if (!getDataFromFile(FILE_NAME, data))
     {
