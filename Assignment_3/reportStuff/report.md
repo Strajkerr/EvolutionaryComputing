@@ -24,17 +24,17 @@ instances defined only by distance matrices.
 
 | Method | Instance 1 (TSPA) | Instance 2 (TSPB) |
 |---|---:|---:|
-| Random solution | 212,245 (194,822 – 234,932) | N/A |
-| Nearest neighbour (append only) | 52,662 (51,037 – 56,570) | N/A |
-| Nearest neighbour (insertion at best position) | 44,649.9 (43,163 – 51,497) | N/A |
-| Greedy (fully greedy insertion) | 50,345.1 (46,166 – 58,032) | N/A |
-| Greedy 2‑regret | 114,825 (105,864 – 123,334) | 72,370.8 (68,080 – 77,702) |
-| Greedy 2‑regret weighted (α=0.5) | 72,096.1 (71,062 – 73,532) | 50,842.2 (47,367 – 54,016) |
+| Random solution | 263102 (231391 – 292542) | 212245 (194822 – 234932) |
+| Nearest neighbour (append only) | 83234.5 (81598 – 88112) | 52662 (51037 – 56570) |
+| Nearest neighbour (insertion at best position) | 71071.2 (69941 – 73650) | 44649.9 (43163 – 51497) |
+| Greedy (fully greedy insertion) | 72694.4 (70285 – 76228) | 50345.1 (46166 – 58032) |
+| Greedy 2‑regret | 72370.8 (68080 – 77702) | 114825 (105864 – 123334) |
+| Greedy 2‑regret weighted (α=0.5) | 50842.2 (47367 – 54016) | 72096.1 (71062 – 73532) |
 | M1 — Steepest descent, 2-node exchange (random start) | N/A | N/A |
 | M2 — Steepest descent, 2-node exchange (greedy start) | N/A | N/A |
 | M3 — Steepest descent, 2-edge (random start) | N/A | N/A |
 | M4 — Steepest descent, 2-edge (greedy start) | N/A | N/A |
-| M5 — Greedy first‑improvement, 2-node exchange (random start) | 261,634 (249,552 – 272,843) | 164,982 (153,706 – 178,435) |
+| M5 — Greedy first‑improvement, 2-node exchange (random start) | 164982 (153706 – 178435) | 261634 (249552 – 272843) |
 | M6 — Greedy first‑improvement, 2-node exchange (greedy start) | N/A | N/A |
 | M7 — Greedy first‑improvement, 2-edge (random start) | N/A | N/A |
 | M8 — Greedy first‑improvement, 2-edge (greedy start) | N/A | N/A |
@@ -43,17 +43,17 @@ instances defined only by distance matrices.
 
 | Method | Instance 1 (TSPA) | Instance 2 (TSPB) |
 |---|---:|---:|
-| Random solution | 0.0098 s | N/A |
-| Nearest neighbour (append only) | 0.0120 s | N/A |
-| Nearest neighbour (insertion) | 50.0508 s | N/A |
-| Greedy (fully greedy insertion) | 52.7421 s | N/A |
-| Greedy 2‑regret | 31.55 s | 31.67 s |
-| Greedy 2‑regret weighted (α=0.5) | 34.16 s | 34.35 s |
+| Random solution | N/A | 0.0098 s |
+| Nearest neighbour (append only) | N/A | 0.0120 s |
+| Nearest neighbour (insertion) | N/A | 50.0508 s |
+| Greedy (fully greedy insertion) | N/A | 52.7421 s |
+| Greedy 2‑regret | 31.67 s | 31.55 s |
+| Greedy 2‑regret weighted (α=0.5) | 34.35 s | 34.16 s |
 | M1 — Steepest descent, 2-node exchange (random start) | N/A | N/A |
 | M2 — Steepest descent, 2-node exchange (greedy start) | N/A | N/A |
 | M3 — Steepest descent, 2-edge (random start) | N/A | N/A |
 | M4 — Steepest descent, 2-edge (greedy start) | N/A | N/A |
-| M5 — Greedy first‑improvement, 2-node exchange (random start) | 33.0805 s | 32.7337 s |
+| M5 — Greedy first‑improvement, 2-node exchange (random start) | 32.7337 s | 33.0805 s |
 | M6 — Greedy first‑improvement, 2-node exchange (greedy start) | N/A | N/A |
 | M7 — Greedy first‑improvement, 2-edge (random start) | N/A | N/A |
 | M8 — Greedy first‑improvement, 2-edge (greedy start) | N/A | N/A |
@@ -89,8 +89,8 @@ return startSolution
 
 | Instance | runs | avg (min – max) | Execution time |
 |---|---:|---:|---:|
-| TSPA (../TSPA.csv) | 200 | 261,634 (249,552 – 272,843) | 33.0805 s |
-| TSPB (../TSPB.csv) | 200 | 164,982 (153,706 – 178,435) | 32.7337 s |
+| TSPA (../TSPA.csv) | 200 | 261634 (249552 – 272843) | 33.0805 s |
+| TSPB (../TSPB.csv) | 200 | 164982 (153706 – 178435) | 32.7337 s |
 
 Best found cycles (one example)
 
