@@ -20,26 +20,46 @@ instances defined only by distance matrices.
 
 ### Comparison table
 
-#### TSPA Results
+### Objective function (avg (min – max))
 
-| Method | Best score | Worst score | Average score | Execution time (s) |
-| --- | --- | --- | --- | --- |
-| Greedy 2-regret | 105864 | 123334 | 114825 | 31.55 |
-| Greedy 2-regret weighted (α=0.5) | 71062 | 73532 | 72096.1 | 34.16 |
+| Method | Instance 1 (TSPA) | Instance 2 (TSPB) |
+|---|---:|---:|
+| Random solution | 263102 (231391 – 292542) | N/A |
+| Nearest neighbour (append only) | 83,234.5 (81,598 – 88,112) | N/A |
+| Nearest neighbour (insertion at best position) | 71,071.2 (69,941 – 73,650) | N/A |
+| Greedy (fully greedy insertion) | 72,694.4 (70,285 – 76,228) | N/A |
+| Greedy 2‑regret | 114,825 (105,864 – 123,334) | 72,370.8 (68,080 – 77,702) |
+| Greedy 2‑regret weighted (α=0.5) | 72,096.1 (71,062 – 73,532) | 50,842.2 (47,367 – 54,016) |
+| M1 — Steepest descent, 2-node exchange (random start) | N/A | N/A |
+| M2 — Steepest descent, 2-node exchange (greedy start) | N/A | N/A |
+| M3 — Steepest descent, 2-edge (random start) | N/A | N/A |
+| M4 — Steepest descent, 2-edge (greedy start) | N/A | N/A |
+| M5 — Greedy first‑improvement, 2-node exchange (random start) | 261,634 (249,552 – 272,843) | 164,982 (153,706 – 178,435) |
+| M6 — Greedy first‑improvement, 2-node exchange (greedy start) | N/A | N/A |
+| M7 — Greedy first‑improvement, 2-edge (random start) | N/A | N/A |
+| M8 — Greedy first‑improvement, 2-edge (greedy start) | N/A | N/A |
 
-#### TSPB Results
+### Running times (seconds)
 
-| Method | Best score | Worst score | Average score | Execution time (s) |
-| --- | --- | --- | --- | --- |
-| Greedy 2-regret | 68080 | 77702 | 72370.8 | 31.67 |
-| Greedy 2-regret weighted (α=0.5) | 47367 | 54016 | 50842.2 | 34.35 |
+| Method | Instance 1 (TSPA) | Instance 2 (TSPB) |
+|---|---:|---:|
+| Random solution | N/A | N/A |
+| Nearest neighbour (append only) | N/A | N/A |
+| Nearest neighbour (insertion) | N/A | N/A |
+| Greedy (fully greedy insertion) | N/A | N/A |
+| Greedy 2‑regret | 31.55 s | 31.67 s |
+| Greedy 2‑regret weighted (α=0.5) | 34.16 s | 34.35 s |
+| M1 — Steepest descent, 2-node exchange (random start) | N/A | N/A |
+| M2 — Steepest descent, 2-node exchange (greedy start) | N/A | N/A |
+| M3 — Steepest descent, 2-edge (random start) | N/A | N/A |
+| M4 — Steepest descent, 2-edge (greedy start) | N/A | N/A |
+| M5 — Greedy first‑improvement, 2-node exchange (random start) | 33.0805 s | 32.7337 s |
+| M6 — Greedy first‑improvement, 2-node exchange (greedy start) | N/A | N/A |
+| M7 — Greedy first‑improvement, 2-edge (random start) | N/A | N/A |
+| M8 — Greedy first‑improvement, 2-edge (greedy start) | N/A | N/A |
 
 **Key observations:**
-- The weighted 2-regret (α=0.5) significantly outperforms basic 2-regret on both datasets
-- TSPA: 33% improvement in average score (114825 → 72096)
-- TSPB: 30% improvement in average score (72370 → 50842)
-- Weighted version takes ~65% longer to execute but produces much better solutions
-
+TODO
 ---
 
 ### Greedy 2-regret heuristics
@@ -94,45 +114,6 @@ TSPB best cycle:
 
 
 ## Conclusions
-
-### Objective function (avg (min – max))
-
-| Method | Instance 1 (TSPA) | Instance 2 (TSPB) |
-|---|---:|---:|
-| Random solution | 263102 (231391 – 292542) | N/A |
-| Nearest neighbour (append only) | 83,234.5 (81,598 – 88,112) | N/A |
-| Nearest neighbour (insertion at best position) | 71,071.2 (69,941 – 73,650) | N/A |
-| Greedy (fully greedy insertion) | 72,694.4 (70,285 – 76,228) | N/A |
-| Greedy 2‑regret | 114,825 (105,864 – 123,334) | 72,370.8 (68,080 – 77,702) |
-| Greedy 2‑regret weighted (α=0.5) | 72,096.1 (71,062 – 73,532) | 50,842.2 (47,367 – 54,016) |
-| M1 — Steepest descent, 2-node exchange (random start) | N/A | N/A |
-| M2 — Steepest descent, 2-node exchange (greedy start) | N/A | N/A |
-| M3 — Steepest descent, 2-edge (random start) | N/A | N/A |
-| M4 — Steepest descent, 2-edge (greedy start) | N/A | N/A |
-| M5 — Greedy first‑improvement, 2-node exchange (random start) | 261,634 (249,552 – 272,843) | 164,982 (153,706 – 178,435) |
-| M6 — Greedy first‑improvement, 2-node exchange (greedy start) | N/A | N/A |
-| M7 — Greedy first‑improvement, 2-edge (random start) | N/A | N/A |
-| M8 — Greedy first‑improvement, 2-edge (greedy start) | N/A | N/A |
-
-### Running times (seconds)
-
-| Method | Instance 1 (TSPA) | Instance 2 (TSPB) |
-|---|---:|---:|
-| Random solution | N/A | N/A |
-| Nearest neighbour (append only) | N/A | N/A |
-| Nearest neighbour (insertion) | N/A | N/A |
-| Greedy (fully greedy insertion) | N/A | N/A |
-| Greedy 2‑regret | 31.55 s | 31.67 s |
-| Greedy 2‑regret weighted (α=0.5) | 34.16 s | 34.35 s |
-| M1 — Steepest descent, 2-node exchange (random start) | N/A | N/A |
-| M2 — Steepest descent, 2-node exchange (greedy start) | N/A | N/A |
-| M3 — Steepest descent, 2-edge (random start) | N/A | N/A |
-| M4 — Steepest descent, 2-edge (greedy start) | N/A | N/A |
-| M5 — Greedy first‑improvement, 2-node exchange (random start) | 33.0805 s | 32.7337 s |
-| M6 — Greedy first‑improvement, 2-node exchange (greedy start) | N/A | N/A |
-| M7 — Greedy first‑improvement, 2-edge (random start) | N/A | N/A |
-| M8 — Greedy first‑improvement, 2-edge (greedy start) | N/A | N/A |
-
 
 
 This assignment explored greedy regret-based heuristics for the TSP with node selection, comparing standard 2-regret against a weighted variant that combines regret with greedy objective minimization.
