@@ -182,7 +182,99 @@ int evaluateSolution(std::vector<int> &solution, int **distanceMatrix, std::vect
  *     - Randomly mix 2-opt intra-route and inter-route exchanges
  *     - Apply first improving move that reduces objective value
  ***************************************************************************************/
-int main()
+void M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(int **distanceMatrix, std::vector<int> &costVector, int size, int totalRuns = 200)
+{
+    if (size <= 0) return;
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+
+    long long totalSum = 0;
+    int bestObjective = std::numeric_limits<int>::max();
+    int worstObjective = std::numeric_limits<int>::min();
+    std::vector<int> bestSolution;
+
+    auto startTime = std::chrono::high_resolution_clock::now();
+
+    for (int run = 0; run < totalRuns; ++run)
+    {
+        // random initial feasible solution (permutation of nodes)
+        std::vector<int> solution(size);
+        std::iota(solution.begin(), solution.end(), 0);
+        std::shuffle(solution.begin(), solution.end(), g);
+
+        int currentCost = evaluateSolution(solution, distanceMatrix, costVector);
+
+        bool improved = true;
+        while (improved)
+        {
+            improved = false;
+
+            // generate all possible two-node exchanges (i < j) and shuffle order
+            std::vector<std::pair<int, int>> moves;
+            moves.reserve((size * (size - 1)) / 2);
+            for (int i = 0; i < size - 1; ++i)
+                for (int j = i + 1; j < size; ++j)
+                    moves.emplace_back(i, j);
+
+            std::shuffle(moves.begin(), moves.end(), g);
+
+            // apply first improving move found
+            for (const auto &mv : moves)
+            {
+                int i = mv.first;
+                int j = mv.second;
+                std::swap(solution[i], solution[j]);
+                int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                if (newCost < currentCost)
+                {
+                    currentCost = newCost;
+                    improved = true;
+                    break; // first improvement accepted
+                }
+                else
+                {
+                    std::swap(solution[i], solution[j]); // revert
+                }
+            }
+        }
+
+        totalSum += currentCost;
+        if (currentCost < bestObjective)
+        {
+            bestObjective = currentCost;
+            bestSolution = solution;
+        }
+        if (currentCost > worstObjective)
+            worstObjective = currentCost;
+    }
+
+    auto endTime = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsedSeconds = endTime - startTime;
+
+    double averageObjective = static_cast<double>(totalSum) / totalRuns;
+    std::cout << "====== M5 (Greedy First-Improvement, 2-node exchange, random start) ======\n";
+    std::cout << "  runs = " << totalRuns << "\n";
+    std::cout << "  min = " << bestObjective << "\n";
+    std::cout << "  max = " << worstObjective << "\n";
+    std::cout << "  avg = " << averageObjective << "\n";
+    std::cout << "Execution time: " << elapsedSeconds.count() << " seconds\n\n";
+
+    if (!bestSolution.empty())
+    {
+        std::cout << "Best cycle route: ";
+        for (const auto &n : bestSolution) std::cout << n << " ";
+        std::cout << bestSolution.front() << " (back to start)\n";
+    }
+    else
+    {
+        std::cout << "No solution found.\n";
+    }
+}
+
+
+
+ int main()
 {
     std::vector<std::string> fileNames = {"../TSPA.csv", "../TSPB.csv"};
 
@@ -192,23 +284,16 @@ int main()
         if (!getDataFromFile(FILE_NAME, data))
         {
             std::cerr << "Failed to read data from file: " << FILE_NAME << std::endl;
-            continue; // move to next file
+            continue; 
         }
 
         int size = data.size();
         int **distanceMatrix = getDistanceMatrix(data, size);
         std::vector<int> costVector = getCostVector(data);
 
-        std::cout << "\nRunning Greedy 2-Regret on file: " << FILE_NAME << std::endl;
-        greedy2Regret(distanceMatrix, costVector, size);
-        
-        std::cout << "\nRunning Greedy Weighted Regret on file: " << FILE_NAME << std::endl;
-        std::cout << "Alpha = 0.2\n" << std::endl;
-        greedyWeightedRegret(distanceMatrix, costVector, size, 0.2);
-        std::cout << "Alpha = 0.5\n" << std::endl;
-        greedyWeightedRegret(distanceMatrix, costVector, size, 0.5);
-        std::cout << "Alpha = 0.7\n" << std::endl;
-        greedyWeightedRegret(distanceMatrix, costVector, size, 0.7);
+        std::cout << "\nRunning M5 on file: " << FILE_NAME << std::endl;
+        M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(distanceMatrix, costVector, size);
+
         for (int i = 0; i < size; i++)
         {
             delete[] distanceMatrix[i];
