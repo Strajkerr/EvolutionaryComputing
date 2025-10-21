@@ -1,4 +1,4 @@
-# Assignment 2 - Greedy regret heuristics
+# Assignment 2 - Local search
 
 ### Prepared by
 
