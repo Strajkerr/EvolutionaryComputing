@@ -43,10 +43,10 @@ instances defined only by distance matrices.
 
 | Method | Instance 1 (TSPA) | Instance 2 (TSPB) |
 |---|---:|---:|
-| Random solution | N/A | 0.0098 s |
-| Nearest neighbour (append only) | N/A | 0.0120 s |
-| Nearest neighbour (insertion) | N/A | 50.0508 s |
-| Greedy (fully greedy insertion) | N/A | 52.7421 s |
+| Random solution | 0.012564 s | 0.0098 s |
+| Nearest neighbour (append only) | 0.014616 s | 0.0120 s |
+| Nearest neighbour (insertion) | 49.8077 s | 50.0508 s |
+| Greedy (fully greedy insertion) | 52.5566 | 52.7421 s |
 | Greedy 2‑regret | 31.67 s | 31.55 s |
 | Greedy 2‑regret weighted (α=0.5) | 34.35 s | 34.16 s |
 | M1 — Steepest descent, 2-node exchange (random start) | N/A | N/A |
