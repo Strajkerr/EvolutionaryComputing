@@ -12,6 +12,7 @@
 #include <limits>
 #include <cstdint>
 #include <chrono>
+#include <numeric>
 
 bool getDataFromFile(const std::string &filename, std::vector<std::vector<int>> &data)
 {
@@ -109,13 +110,15 @@ std::vector<int> constructGreedyInsertion(int **distanceMatrix, const std::vecto
     std::vector<int> solution;
     if (size <= 0) return solution;
 
-    solution.reserve(size);
+    int nodesToVisit = (size % 2 == 0) ? (size / 2) : ((size + 1) / 2);
+
+    solution.reserve(nodesToVisit);
     solution.push_back(startNode);
 
     std::vector<char> used(size, 0);
     used[startNode] = 1;
 
-    while ((int)solution.size() < size)
+    while ((int)solution.size() < nodesToVisit)
     {
         int bestCandidate = -1;
         int bestPos = -1;
@@ -154,9 +157,12 @@ std::vector<int> constructGreedyInsertion(int **distanceMatrix, const std::vecto
 // new helper: create random permutation (reuse in M5)
 std::vector<int> randomPermutation(int size, std::mt19937 &g)
 {
+    int nodesToVisit = (size % 2 == 0) ? (size / 2) : ((size + 1) / 2);
+
     std::vector<int> solution(size);
     std::iota(solution.begin(), solution.end(), 0);
     std::shuffle(solution.begin(), solution.end(), g);
+    solution.resize(nodesToVisit);
     return solution;
 }
 
@@ -240,6 +246,345 @@ std::vector<int> randomPermutation(int size, std::mt19937 &g)
  *     - Randomly mix 2-opt intra-route and inter-route exchanges
  *     - Apply first improving move that reduces objective value
  ***************************************************************************************/
+void M1_steepestDescent_TwoNodeExchange_RandomStart(int **distanceMatrix, std::vector<int> &costVector, int size, int totalRuns = 200)
+{
+    if (size <= 0) return;
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+
+    long long totalSum = 0;
+    int bestObjective = std::numeric_limits<int>::max();
+    int worstObjective = std::numeric_limits<int>::min();
+    std::vector<int> bestSolution;
+    auto startTime = std::chrono::high_resolution_clock::now();
+
+    for (int run = 0; run < totalRuns; ++run)
+    {
+        std::vector<int> solution = randomPermutation(size, g);
+
+        int currentCost = evaluateSolution(solution, distanceMatrix, costVector);
+
+        bool improved = true;
+        while (improved)
+        {
+            improved = false;
+            int bestDelta = 0;
+            int bestI = -1;
+            int bestJ = -1;
+
+            for (int i = 0; i < size - 1; ++i)
+            {
+                for (int j = i + 1; j < size; ++j)
+                {
+                    std::swap(solution[i], solution[j]);
+                    int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                    int delta = newCost - currentCost;
+                    if (delta < bestDelta)
+                    {
+                        bestDelta = delta;
+                        bestI = i;
+                        bestJ = j;
+                    }
+                    std::swap(solution[i], solution[j]);
+                }
+            }
+
+            if (bestDelta < 0)
+            {
+                std::swap(solution[bestI], solution[bestJ]);
+                currentCost += bestDelta;
+                improved = true;
+            }
+        }
+
+        totalSum += currentCost;
+        if (currentCost < bestObjective)
+        {
+            bestObjective = currentCost;
+            bestSolution = solution;
+        }
+        if (currentCost > worstObjective)
+            worstObjective = currentCost;
+    }
+    auto endTime = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsedSeconds = endTime - startTime;
+
+    double averageObjective = static_cast<double>(totalSum) / totalRuns;
+    std::cout << "====== M1 (Steepest Descent, 2-node exchange, random start) ======\n";
+    std::cout << "  runs = " << totalRuns << "\n";
+    std::cout << "  min = " << bestObjective << "\n";
+    std::cout << "  max = " << worstObjective << "\n";
+    std::cout << "  avg = " << averageObjective << "\n";
+    std::cout << "Execution time: " << elapsedSeconds.count() << " seconds\n\n";
+
+    if (!bestSolution.empty())
+    {
+        std::cout << "Best cycle route: ";
+        for (const auto &n : bestSolution) std::cout << n << " ";
+        std::cout << bestSolution.front() << " (back to start)\n";
+    }
+    else
+    {
+        std::cout << "No solution found.\n";
+    }
+}
+
+void M2_steepestDescent_TwoNodeExchange_GreedyStart(int **distanceMatrix, std::vector<int> &costVector, int size, int totalRuns = 200)
+{
+    if (size <= 0) return;
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+
+    long long totalSum = 0;
+    int bestObjective = std::numeric_limits<int>::max();
+    int worstObjective = std::numeric_limits<int>::min();
+    std::uniform_int_distribution<int> startDist(0, size - 1);
+
+    std::vector<int> bestSolution;
+    auto startTime = std::chrono::high_resolution_clock::now();
+    for (int run = 0; run < totalRuns; ++run)
+    {
+        int startNode = startDist(g);
+        std::vector<int> solution = constructGreedyInsertion(distanceMatrix, costVector, size, startNode);
+
+        int currentCost = evaluateSolution(solution, distanceMatrix, costVector);
+
+        bool improved = true;
+        while(improved)
+        {
+            improved = false;
+            int bestDelta = 0;
+            int bestI = -1;
+            int bestJ = -1;
+
+            for (int i = 0; i < size - 1; ++i)
+            {
+                for (int j = i + 1; j < size; ++j)
+                {
+                    std::swap(solution[i], solution[j]);
+                    int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                    int delta = newCost - currentCost;
+                    if (delta < bestDelta)
+                    {
+                        bestDelta = delta;
+                        bestI = i;
+                        bestJ = j;
+                    }
+                    std::swap(solution[i], solution[j]);
+                }
+            }
+
+            if (bestDelta < 0)
+            {
+                std::swap(solution[bestI], solution[bestJ]);
+                currentCost += bestDelta;
+                improved = true;
+            }
+        }
+
+        totalSum += currentCost;
+        if (currentCost < bestObjective)
+        {
+            bestObjective = currentCost;
+            bestSolution = solution;
+        }
+        if (currentCost > worstObjective)
+            worstObjective = currentCost;
+    }
+    auto endTime = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsedSeconds = endTime - startTime;
+
+    double averageObjective = static_cast<double>(totalSum) / totalRuns;
+    std::cout << "====== M2 (Steepest Descent, 2-node exchange, greedy start) ======\n";
+    std::cout << "  runs = " << totalRuns << "\n";
+    std::cout << "  min = " << bestObjective << "\n";
+    std::cout << "  max = " << worstObjective << "\n";
+    std::cout << "  avg = " << averageObjective << "\n";
+    std::cout << "Execution time: " << elapsedSeconds.count() << " seconds\n\n";
+
+    if (!bestSolution.empty())
+    {
+        std::cout << "Best cycle route: ";
+        for (const auto &n : bestSolution) std::cout << n << " ";
+        std::cout << bestSolution.front() << " (back to start)\n";
+    }
+    else
+    {
+        std::cout << "No solution found.\n";
+    }
+}
+
+void M3_steepestDescent_TwoEdgeExchange_RandomStart(int **distanceMatrix, std::vector<int> &costVector, int size, int totalRuns = 200)
+{
+    if (size <= 0) return;
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+
+    long long totalSum = 0;
+    int bestObjective = std::numeric_limits<int>::max();
+    int worstObjective = std::numeric_limits<int>::min();
+    std::vector<int> bestSolution;
+    auto startTime = std::chrono::high_resolution_clock::now();
+
+    for (int run = 0; run < totalRuns; ++run)
+    {
+        std::cout << "\n" << run;
+        std::vector<int> solution = randomPermutation(size, g);
+
+        int currentCost = evaluateSolution(solution, distanceMatrix, costVector);
+
+        bool improved = true;
+        while (improved)
+        {
+            improved = false;
+            int bestDelta = 0;
+            int bestI = -1;
+            int bestJ = -1;
+
+            for (int i = 0; i < size - 1; ++i)
+            {
+                for (int j = i + 1; j < size; ++j)
+                {
+                    std::reverse(solution.begin() + i, solution.begin() + j + 1);
+                    int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                    int delta = newCost - currentCost;
+                    if (delta < bestDelta)
+                    {
+                        bestDelta = delta;
+                        bestI = i;
+                        bestJ = j;
+                    }
+                    std::reverse(solution.begin() + i, solution.begin() + j + 1);
+                }
+            }
+
+            if (bestDelta < 0)
+            {
+                std::reverse(solution.begin() + bestI, solution.begin() + bestJ + 1);
+                currentCost += bestDelta;
+                improved = true;
+            }
+        }
+
+        totalSum += currentCost;
+        if (currentCost < bestObjective)
+        {
+            bestObjective = currentCost;
+            bestSolution = solution;
+        }
+        if (currentCost > worstObjective)
+            worstObjective = currentCost;
+    }
+    auto endTime = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsedSeconds = endTime - startTime;
+
+    double averageObjective = static_cast<double>(totalSum) / totalRuns;
+    std::cout << "====== M3 (Steepest Descent, 2-edge exchange, random start) ======\n";
+    std::cout << "  runs = " << totalRuns << "\n";
+    std::cout << "  min = " << bestObjective << "\n";
+    std::cout << "  max = " << worstObjective << "\n";
+    std::cout << "  avg = " << averageObjective << "\n";
+    std::cout << "Execution time: " << elapsedSeconds.count() << " seconds\n\n";
+
+    if (!bestSolution.empty())
+    {
+        std::cout << "Best cycle route: ";
+        for (const auto &n : bestSolution) std::cout << n << " ";
+        std::cout << bestSolution.front() << " (back to start)\n";
+    }
+    else
+    {
+        std::cout << "No solution found.\n";
+    }
+}
+
+void M4_steepestDescent_TwoEdgeExchange_GreedyStart(int **distanceMatrix, std::vector<int> &costVector, int size, int totalRuns = 200)
+{
+    if (size <= 0) return;
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+
+    long long totalSum = 0;
+    int bestObjective = std::numeric_limits<int>::max();
+    int worstObjective = std::numeric_limits<int>::min();
+    std::vector<int> bestSolution;
+    auto startTime = std::chrono::high_resolution_clock::now();
+
+    for (int run = 0; run < totalRuns; run++)
+    {
+        std::vector<int> solution = randomPermutation(size, g);
+
+        int currentCost = evaluateSolution(solution, distanceMatrix, costVector);
+
+        bool improved = true;
+        while (improved)
+        {
+            improved = false;
+            int bestDelta = 0;
+            int bestI = -1;
+            int bestJ = -1;
+
+            for (int i = 0; i < size - 1; ++i)
+            {
+                for (int j = i + 1; j < size; ++j)
+                {
+                    std::reverse(solution.begin() + i, solution.begin() + j + 1);
+                    int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                    int delta = newCost - currentCost;
+                    if (delta < bestDelta)
+                    {
+                        bestDelta = delta;
+                        bestI = i;
+                        bestJ = j;
+                    }
+                    std::reverse(solution.begin() + i, solution.begin() + j + 1);
+                }
+            }
+
+            if (bestDelta < 0)
+            {
+                std::reverse(solution.begin() + bestI, solution.begin() + bestJ + 1);
+                currentCost += bestDelta;
+                improved = true;
+            }
+        }
+
+        totalSum += currentCost;
+        if (currentCost < bestObjective)
+        {
+            bestObjective = currentCost;
+            bestSolution = solution;
+        }
+        if (currentCost > worstObjective)
+            worstObjective = currentCost;
+    }
+    auto endTime = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsedSeconds = endTime - startTime;
+
+    double averageObjective = static_cast<double>(totalSum) / totalRuns;
+    std::cout << "====== M4 (Steepest Descent, 2-edge exchange, greedy start) ======\n";
+    std::cout << "  runs = " << totalRuns << "\n";
+    std::cout << "  min = " << bestObjective << "\n";
+    std::cout << "  max = " << worstObjective << "\n";
+    std::cout << "  avg = " << averageObjective << "\n";
+    std::cout << "Execution time: " << elapsedSeconds.count() << " seconds\n\n";
+
+    if (!bestSolution.empty())
+    {
+        std::cout << "Best cycle route: ";
+        for (const auto &n : bestSolution) std::cout << n << " ";
+        std::cout << bestSolution.front() << " (back to start)\n";
+    }
+    else
+    {
+        std::cout << "No solution found.\n";
+    }
+}
+
 void M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(int **distanceMatrix, std::vector<int> &costVector, int size, int totalRuns = 200)
 {
     if (size <= 0) return;
@@ -431,6 +776,18 @@ int main()
         int size = data.size();
         int **distanceMatrix = getDistanceMatrix(data, size);
         std::vector<int> costVector = getCostVector(data);
+
+        std::cout << "\nRunning M1 on file: " << FILE_NAME << std::endl;
+        M1_steepestDescent_TwoNodeExchange_RandomStart(distanceMatrix, costVector, size);
+
+        std::cout << "\nRunning M2 on file: " << FILE_NAME << std::endl;
+        M2_steepestDescent_TwoNodeExchange_GreedyStart(distanceMatrix, costVector, size);
+
+        std::cout << "\nRunning M3 on file: " << FILE_NAME << std::endl;
+        M3_steepestDescent_TwoEdgeExchange_RandomStart(distanceMatrix, costVector, size);
+
+        std::cout << "\nRunning M4 on file: " << FILE_NAME << std::endl;
+        M4_steepestDescent_TwoEdgeExchange_GreedyStart(distanceMatrix, costVector, size);
 
         std::cout << "\nRunning M5 on file: " << FILE_NAME << std::endl;
         M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(distanceMatrix, costVector, size);
