@@ -23,7 +23,7 @@ instances defined only by distance matrices.
 ### Objective function (avg (min – max))
 
 | Method | Instance 1 (TSPA) | Instance 2 (TSPB) |
-|---|---:|---:|
+|---|---:|---:| 
 | Random solution | 263102 (231391 – 292542) | 212245 (194822 – 234932) |
 | Nearest neighbour (append only) | 83234.5 (81598 – 88112) | 52662 (51037 – 56570) |
 | Nearest neighbour (insertion at best position) | 71071.2 (69941 – 73650) | 44649.9 (43163 – 51497) |
@@ -34,10 +34,10 @@ instances defined only by distance matrices.
 | M2 — Steepest descent, 2-node exchange (greedy start) | N/A | N/A |
 | M3 — Steepest descent, 2-edge (random start) | N/A | N/A |
 | M4 — Steepest descent, 2-edge (greedy start) | N/A | N/A |
-| M5 — Greedy first‑improvement, 2-node exchange (random start) | 261634 (249552 – 272843) | 164982 (153706 – 178435) |
-| M6 — Greedy first‑improvement, 2-node exchange (greedy start) | 230946 (229204 – 232847) | 132237 (131493 – 135704) |
-| M7 — Greedy first‑improvement, 2-edge (random start) | N/A | N/A |
-| M8 — Greedy first‑improvement, 2-edge (greedy start) | N/A | N/A |
+| M5 — Greedy first‑improvement, 2-node exchange (random start) | 137859 (126338 – 150701) | 90105.4 (81524 – 103324) |
+| M6 — Greedy first‑improvement, 2-node exchange (greedy start) | 115138 (112768 – 117216) | 66455.3 (62651 – 70323) |
+| M7 — Greedy first‑improvement, 2-edge (random start) | 121578 (110182 – 134570) | 73918.8 (66857 – 79915) |
+| M8 — Greedy first‑improvement, 2-edge (greedy start) | 113599 (111034 – 115291) | 65586 (61428 – 69219) |
 
 ### Running times (seconds)
 
@@ -46,17 +46,17 @@ instances defined only by distance matrices.
 | Random solution | 0.012564 s | 0.0098 s |
 | Nearest neighbour (append only) | 0.014616 s | 0.0120 s |
 | Nearest neighbour (insertion) | 49.8077 s | 50.0508 s |
-| Greedy (fully greedy insertion) | 52.5566 | 52.7421 s |
+| Greedy (fully greedy insertion) | 52.5566 s | 52.7421 s |
 | Greedy 2‑regret | 31.67 s | 31.55 s |
 | Greedy 2‑regret weighted (α=0.5) | 34.35 s | 34.16 s |
 | M1 — Steepest descent, 2-node exchange (random start) | N/A | N/A |
 | M2 — Steepest descent, 2-node exchange (greedy start) | N/A | N/A |
 | M3 — Steepest descent, 2-edge (random start) | N/A | N/A |
 | M4 — Steepest descent, 2-edge (greedy start) | N/A | N/A |
-| M5 — Greedy first‑improvement, 2-node exchange (random start) | 32.7337 s | 33.0805 s |
-| M6 — Greedy first‑improvement, 2-node exchange (greedy start) | 2.7235 s | 2.7755 s |
-| M7 — Greedy first‑improvement, 2-edge (random start) | N/A | N/A |
-| M8 — Greedy first‑improvement, 2-edge (greedy start) | N/A | N/A |
+| M5 — Greedy first‑improvement, 2-node exchange (random start) | 3.44263 s | 3.39931 s |
+| M6 — Greedy first‑improvement, 2-node exchange (greedy start) | 0.524846 s | 0.396826 s |
+| M7 — Greedy first‑improvement, 2-edge (random start) | 3.3739 s | 3.4108 s |
+| M8 — Greedy first‑improvement, 2-edge (greedy start) | 0.84279 s | 0.681293 s |
 
 **Key observations:**
 TODO
@@ -150,12 +150,73 @@ TSPB best cycle:
 
 ![](M6_tspb.png)
 
+### M7
 
+#### Description 
+- Greedy (first‑improvement) local search using 2‑edge exchanges (2‑opt).  
+- Start: random feasible solution.  
+- Neighbourhood: intra‑route 2‑opt moves combined with inter‑route selected↔not‑selected exchanges.  
+- Strategy: randomly shuffle candidate 2‑opt moves (and inter‑route exchanges), apply the first move that improves the objective, repeat until no improvement.
 
+#### Pseudocode
+``` pseudocode
+startSolution <- generate_random_solution()
+improved <- true
+while improved:
+  improved <- false
+  for move in random_order(2-opt_and_inter_route_moves(startSolution)):
+    if delta(move) < 0:
+      apply move
+      improved <- true
+      break
+return startSolution
+```
 
+#### Results (summary)
 
+| Instance | runs | avg (min – max) | Execution time |
+|---|---:|---:|---:|
+| TSPA (../TSPA.csv) | 200 | N/A | N/A |
+| TSPB (../TSPB.csv) | 200 | 73918.8 (66857 – 79915) | 3.41126 s |
 
+Best found cycle (example, TSPB):
+```
+61 79 82 56 33 49 39 29 0 109 35 111 41 50 77 97 81 14 119 153 165 127 89 103 26 176 114 76 48 172 185 86 106 62 83 18 55 170 174 183 140 9 66 94 154 47 148 60 23 20 59 4 152 155 167 189 69 145 168 126 65 134 139 138 104 171 177 5 173 19 112 121 116 98 120 67 191 147 115 10 133 44 17 107 63 96 122 135 38 24 156 42 30 198 117 193 164 136 80 175 61 (back to start)
+```
 
+### M8
+
+#### Description 
+- Greedy (first‑improvement) local search using 2‑edge exchanges (2‑opt).  
+- Start: greedy feasible solution constructed by best‑insertion with a random start node.  
+- Neighbourhood and strategy: same as M7, but starting from the greedy insertion solution.
+
+#### Pseudocode
+``` pseudocode
+startNode <- random_choice(nodes)
+startSolution <- construct_greedy_insertion(startNode)
+improved <- true
+while improved:
+  improved <- false
+  for move in random_order(2-opt_and_inter_route_moves(startSolution)):
+    if delta(move) < 0:
+      apply move
+      improved <- true
+      break
+return startSolution
+```
+
+#### Results (summary)
+
+| Instance | runs | avg (min – max) | Execution time |
+|---|---:|---:|---:|
+| TSPA (../TSPA.csv) | 200 | N/A | N/A |
+| TSPB (../TSPB.csv) | 200 | 65586 (61428 – 69219) | 0.682671 s |
+
+Best found cycle (example, TSPB):
+```
+111 68 144 160 39 12 0 35 109 29 49 11 168 195 126 43 139 182 138 33 56 104 157 171 8 21 87 82 58 77 97 146 187 153 186 129 163 26 103 89 165 127 137 114 113 180 176 88 194 166 64 86 110 128 181 95 130 185 99 22 179 52 172 57 66 94 154 47 148 60 23 20 59 28 101 149 4 199 9 140 183 174 53 152 170 34 55 18 83 62 124 106 143 159 119 81 14 50 41 37 111 (back to start)
+```
 
 ## Conclusions
 
