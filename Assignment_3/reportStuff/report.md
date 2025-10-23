@@ -73,13 +73,14 @@ Description
 
 #### Pseudocode
 ``` pseudocode
-    startSolution <- generate_random_solution()
+startSolution <- random_permutation(nodes)          // random start visit set
 improved <- true
 while improved:
   improved <- false
-  for move in random_order(neighbourhood_of(startSolution)):
+  moves <- random_order( two_node_swaps(startSolution) ++ inter_route_replacements(startSolution) )
+  for move in moves:
     if delta(move) < 0:
-      apply move
+      apply(move)
       improved <- true
       break
 return startSolution
@@ -117,13 +118,14 @@ TSPB best cycle:
 #### Pseudocode
 ``` pseudocode
 startNode <- random_choice(nodes)
-startSolution <- construct_greedy_insertion(startNode)
+startSolution <- construct_greedy_insertion(startNode)   // greedy construction
 improved <- true
 while improved:
   improved <- false
-  for move in random_order(neighbourhood_of(startSolution)):
+  moves <- random_order( two_node_swaps(startSolution) ++ inter_route_replacements(startSolution) )
+  for move in moves:
     if delta(move) < 0:
-      apply move
+      apply(move)
       improved <- true
       break
 return startSolution
@@ -160,13 +162,14 @@ TSPB best cycle:
 
 #### Pseudocode
 ``` pseudocode
-startSolution <- generate_random_solution()
+startSolution <- random_permutation(nodes)
 improved <- true
 while improved:
   improved <- false
-  for move in random_order(2-opt_and_inter_route_moves(startSolution)):
+  moves <- random_order( two_opt_moves(startSolution) ++ inter_route_replacements(startSolution) )
+  for move in moves:
     if delta(move) < 0:
-      apply move
+      apply(move)            // for 2-opt: reverse subsequence; for inter-route: replace node
       improved <- true
       break
 return startSolution
@@ -183,10 +186,14 @@ Best found cycle (example, TSPA):
 ```
 62 144 14 49 3 178 106 185 40 119 165 90 81 196 31 56 113 175 171 16 78 145 179 52 55 57 92 129 25 44 120 2 152 1 75 86 101 97 26 100 53 158 180 154 135 70 127 123 35 84 112 4 190 10 177 54 184 160 34 181 146 22 41 193 18 108 140 68 46 0 117 143 183 89 186 23 137 176 51 118 59 115 139 42 43 116 65 131 149 162 151 133 79 80 122 63 94 124 148 9 62 (back to start)
 ```
+![](M7_tspa.png)
+
 Best found cycle (example, TSPB):
 ```
 113 26 103 114 137 127 165 89 163 153 77 141 91 79 61 36 177 5 78 175 142 45 162 80 190 136 73 164 54 31 193 117 198 1 135 63 40 107 122 131 121 51 90 191 147 188 169 132 70 3 15 145 13 195 168 139 11 138 33 160 104 21 82 8 111 144 29 0 109 35 143 159 106 124 62 18 55 34 152 183 140 4 149 28 20 60 148 47 94 66 179 22 99 95 185 86 166 194 176 180 113 (back to start)
 ```
+![](M7_tspb.png)
+
 ### M8
 
 #### Description 
@@ -201,9 +208,10 @@ startSolution <- construct_greedy_insertion(startNode)
 improved <- true
 while improved:
   improved <- false
-  for move in random_order(2-opt_and_inter_route_moves(startSolution)):
+  moves <- random_order( two_opt_moves(startSolution) ++ inter_route_replacements(startSolution) )
+  for move in moves:
     if delta(move) < 0:
-      apply move
+      apply(move)
       improved <- true
       break
 return startSolution
@@ -220,11 +228,13 @@ Best found cycle (example, TSPA):
 ```
 198 115 96 5 42 160 48 54 30 177 10 190 4 112 84 35 184 28 43 105 116 65 47 131 149 24 123 162 151 72 59 118 51 176 80 79 133 194 127 70 135 154 158 53 180 63 94 124 152 1 97 26 100 86 101 75 2 120 44 16 78 145 40 185 55 52 106 178 49 14 144 62 9 148 137 23 89 183 143 170 0 117 93 140 36 108 69 18 22 146 34 181 195 159 193 41 139 110 68 46 198 (back to start)
 ```
+![](M8_tspa.png)
 
 Best found cycle (example, TSPB):
 ```
 141 61 36 175 5 177 21 87 82 8 104 182 138 33 49 11 139 168 195 169 188 70 3 145 29 109 35 0 160 144 56 111 41 81 119 159 143 106 124 62 18 55 34 170 152 53 140 4 149 101 28 59 20 23 60 154 94 66 47 148 9 199 183 174 83 181 95 130 99 22 179 57 172 52 185 86 110 128 64 166 194 88 176 180 113 114 137 127 165 89 103 26 163 129 186 153 187 146 97 77 141 (back to start)
 ```
+![](M8_tspb.png)
 
 ## Conclusions
 

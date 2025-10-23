@@ -628,7 +628,7 @@ void M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(int **distanceMatrix,
 
     for (int run = 0; run < totalRuns; ++run)
     {
-        // random initial feasible solution (permutation of nodes) => already half-size
+        
         std::vector<int> solution = randomPermutation(size, g);
         int solSize = static_cast<int>(solution.size());
         if (solSize <= 0) continue;
@@ -640,12 +640,12 @@ void M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(int **distanceMatrix,
         {
             improved = false;
 
-            // iterate indices in random order
+            
             std::vector<int> order(solSize);
             std::iota(order.begin(), order.end(), 0);
             std::shuffle(order.begin(), order.end(), g);
 
-            // randomize which move-type to try first this iteration: 0 = intra, 1 = inter
+            
             std::vector<int> moveTypes = {0, 1};
             std::shuffle(moveTypes.begin(), moveTypes.end(), g);
 
@@ -653,7 +653,7 @@ void M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(int **distanceMatrix,
             {
                 if (moveType == 0 && !improved)
                 {
-                    // intra-route (reorder within selected set) - first improvement
+                    
                     for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
                     {
                         int i = order[oi];
@@ -667,18 +667,18 @@ void M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(int **distanceMatrix,
                             {
                                 currentCost = newCost;
                                 improved = true;
-                                break; // first improvement accepted
+                                break; 
                             }
                             else
                             {
-                                std::swap(solution[i], solution[j]); // revert
+                                std::swap(solution[i], solution[j]); 
                             }
                         }
                     }
                 }
                 else if (moveType == 1 && !improved)
                 {
-                    // inter-route (exchange one selected node with one not-selected) - first improvement
+                    
                     std::vector<char> used(size, 0);
                     for (int v : solution) used[v] = 1;
                     std::vector<int> notSelected;
@@ -700,17 +700,17 @@ void M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(int **distanceMatrix,
                                 {
                                     currentCost = newCost;
                                     improved = true;
-                                    break; // accepted inter-route swap
+                                    break;
                                 }
                                 else
                                 {
-                                    solution[selIndex] = oldNode; // revert
+                                    solution[selIndex] = oldNode; 
                                 }
                             }
                         }
                     }
                 }
-            } // end for moveTypes
+            }
         }
 
         totalSum += currentCost;
@@ -763,7 +763,6 @@ void M6_greedyFirstImprovement_TwoNodeExchange_GreedyStart(int **distanceMatrix,
 
     for (int run = 0; run < totalRuns; ++run)
     {
-        // Greedy construction with random start node (returns half-size solution)
         int startNode = startDist(g);
         std::vector<int> solution = constructGreedyInsertion(distanceMatrix, costVector, size, startNode);
         int solSize = static_cast<int>(solution.size());
@@ -776,12 +775,12 @@ void M6_greedyFirstImprovement_TwoNodeExchange_GreedyStart(int **distanceMatrix,
         {
             improved = false;
 
-            // iterate indices in random order
+            
             std::vector<int> order(solSize);
             std::iota(order.begin(), order.end(), 0);
             std::shuffle(order.begin(), order.end(), g);
 
-            // randomize which move-type to try first this iteration: 0 = intra, 1 = inter
+            
             std::vector<int> moveTypes = {0, 1};
             std::shuffle(moveTypes.begin(), moveTypes.end(), g);
 
@@ -789,7 +788,7 @@ void M6_greedyFirstImprovement_TwoNodeExchange_GreedyStart(int **distanceMatrix,
             {
                 if (moveType == 0 && !improved)
                 {
-                    // intra-route swaps (first improvement)
+                    
                     for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
                     {
                         int i = order[oi];
@@ -806,14 +805,14 @@ void M6_greedyFirstImprovement_TwoNodeExchange_GreedyStart(int **distanceMatrix,
                             }
                             else
                             {
-                                std::swap(solution[i], solution[j]); // revert
+                                std::swap(solution[i], solution[j]); 
                             }
                         }
                     }
                 }
                 else if (moveType == 1 && !improved)
                 {
-                    // inter-route (selected <-> not-selected) - first improvement
+                    
                     std::vector<char> used(size, 0);
                     for (int v : solution) used[v] = 1;
                     std::vector<int> notSelected;
@@ -845,8 +844,8 @@ void M6_greedyFirstImprovement_TwoNodeExchange_GreedyStart(int **distanceMatrix,
                         }
                     }
                 }
-            } // end for moveTypes
-        } // end while improved
+            } 
+        } 
 
         totalSum += currentCost;
         if (currentCost < bestObjective)
@@ -906,12 +905,11 @@ void M7_greedyFirstImprovement_TwoEdgeExchange_RandomStart(int **distanceMatrix,
         {
             improved = false;
 
-            // iterate unordered index pairs in random order without building full pair list
+
             std::vector<int> order(solSize);
             std::iota(order.begin(), order.end(), 0);
             std::shuffle(order.begin(), order.end(), g);
 
-            // randomize which move-type to try first this iteration: 0 = intra 2-opt, 1 = inter-route node exchange
             std::vector<int> moveTypes = {0, 1};
             std::shuffle(moveTypes.begin(), moveTypes.end(), g);
 
@@ -919,7 +917,6 @@ void M7_greedyFirstImprovement_TwoEdgeExchange_RandomStart(int **distanceMatrix,
             {
                 if (moveType == 0 && !improved)
                 {
-                    // intra-route 2-opt (first improvement)
                     for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
                     {
                         int pos_i = order[oi];
@@ -934,7 +931,7 @@ void M7_greedyFirstImprovement_TwoEdgeExchange_RandomStart(int **distanceMatrix,
                             {
                                 currentCost = newCost;
                                 improved = true;
-                                break; // first improvement
+                                break; 
                             }
                             else
                             {
@@ -945,7 +942,7 @@ void M7_greedyFirstImprovement_TwoEdgeExchange_RandomStart(int **distanceMatrix,
                 }
                 else if (moveType == 1 && !improved)
                 {
-                    // inter-route (selected <-> not-selected) - first improvement
+
                     std::vector<char> used(size, 0);
                     for (int v : solution) used[v] = 1;
                     std::vector<int> notSelected;
@@ -977,7 +974,7 @@ void M7_greedyFirstImprovement_TwoEdgeExchange_RandomStart(int **distanceMatrix,
                         }
                     }
                 }
-            } // end for moveTypes
+            }
         }
 
         totalSum += currentCost;
@@ -1035,12 +1032,12 @@ void M8_greedyFirstImprovement_TwoEdgeExchange_GreedyStart(int **distanceMatrix,
         {
             improved = false;
 
-            // iterate unordered index pairs in random order without building full pair list
+
             std::vector<int> order(solSize);
             std::iota(order.begin(), order.end(), 0);
             std::shuffle(order.begin(), order.end(), g);
 
-            // randomize which move-type to try first this iteration: 0 = intra 2-opt, 1 = inter-route node exchange
+           
             std::vector<int> moveTypes = {0, 1};
             std::shuffle(moveTypes.begin(), moveTypes.end(), g);
 
@@ -1048,7 +1045,7 @@ void M8_greedyFirstImprovement_TwoEdgeExchange_GreedyStart(int **distanceMatrix,
             {
                 if (moveType == 0 && !improved)
                 {
-                    // intra-route 2-opt
+
                     for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
                     {
                         int pos_i = order[oi];
@@ -1074,7 +1071,6 @@ void M8_greedyFirstImprovement_TwoEdgeExchange_GreedyStart(int **distanceMatrix,
                 }
                 else if (moveType == 1 && !improved)
                 {
-                    // inter-route (selected <-> not-selected)
                     std::vector<char> used(size, 0);
                     for (int v : solution) used[v] = 1;
                     std::vector<int> notSelected;
@@ -1106,7 +1102,7 @@ void M8_greedyFirstImprovement_TwoEdgeExchange_GreedyStart(int **distanceMatrix,
                         }
                     }
                 }
-            } // end for moveTypes
+            }
         }
 
         totalSum += currentCost;
@@ -1153,7 +1149,7 @@ int main()
         int size = data.size();
         int **distanceMatrix = getDistanceMatrix(data, size);
         std::vector<int> costVector = getCostVector(data);
-        /******** 
+
         std::cout << "\nRunning M1 on file: " << FILE_NAME << std::endl;
         M1_steepestDescent_TwoNodeExchange_RandomStart(distanceMatrix, costVector, size);
 
@@ -1164,8 +1160,8 @@ int main()
         M3_steepestDescent_TwoEdgeExchange_RandomStart(distanceMatrix, costVector, size);
 
         std::cout << "\nRunning M4 on file: " << FILE_NAME << std::endl;
-        M4_steepestDescent_TwoEdgeExchange_GreedyStart(distanceMatrix, costVector, size);*/
-
+        M4_steepestDescent_TwoEdgeExchange_GreedyStart(distanceMatrix, costVector, size);
+        /******** 
         std::cout << "\nRunning M5 on file: " << FILE_NAME << std::endl;
         M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(distanceMatrix, costVector, size);
 
@@ -1176,7 +1172,7 @@ int main()
         M7_greedyFirstImprovement_TwoEdgeExchange_RandomStart(distanceMatrix, costVector, size);
 
         std::cout << "\nRunning M8 on file: " << FILE_NAME << std::endl;
-        M8_greedyFirstImprovement_TwoEdgeExchange_GreedyStart(distanceMatrix, costVector, size);
+        M8_greedyFirstImprovement_TwoEdgeExchange_GreedyStart(distanceMatrix, costVector, size);*/
 
         for (int i = 0; i < size; i++)
         {
