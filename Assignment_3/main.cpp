@@ -106,6 +106,9 @@ int evaluateSolution(std::vector<int> &solution, int **distanceMatrix, std::vect
 // new helper: greedy insertion start (reuse in M6)
 std::vector<int> constructGreedyInsertion(int **distanceMatrix, const std::vector<int> &costVector, int size, int startNode)
 {
+    // Single-run nearest-neighbour insertion:
+    // - pick unused node closest to any node in current tour (tie-break by node cost then id)
+    // - insert that node at the position (in the cyclic tour) that minimizes the objective delta
     std::vector<int> solution;
     if (size <= 0) return solution;
 
@@ -118,32 +121,55 @@ std::vector<int> constructGreedyInsertion(int **distanceMatrix, const std::vecto
     while ((int)solution.size() < size)
     {
         int bestCandidate = -1;
-        int bestPos = -1;
-        int bestCost = std::numeric_limits<int>::max();
+        int bestNearest = std::numeric_limits<int>::max();
 
+        // select candidate by nearest distance to current tour
         for (int candidate = 0; candidate < size; ++candidate)
         {
             if (used[candidate]) continue;
 
-            for (int pos = 0; pos <= (int)solution.size(); ++pos)
+            int nearest = std::numeric_limits<int>::max();
+            for (int v : solution)
             {
-                int added = 0;
-                int removed = 0;
-                if (pos > 0) added += distanceMatrix[solution[pos - 1]][candidate];
-                if (pos < (int)solution.size()) added += distanceMatrix[candidate][solution[pos]];
-                if (pos > 0 && pos < (int)solution.size()) removed = distanceMatrix[solution[pos - 1]][solution[pos]];
+                nearest = std::min(nearest, distanceMatrix[candidate][v]);
+            }
 
-                int cost = costVector[candidate] + (added - removed);
-                if (cost < bestCost)
-                {
-                    bestCost = cost;
-                    bestCandidate = candidate;
-                    bestPos = pos;
-                }
+            if (bestCandidate == -1 ||
+                nearest < bestNearest ||
+                (nearest == bestNearest &&
+                 (costVector[candidate] < costVector[bestCandidate] ||
+                  (costVector[candidate] == costVector[bestCandidate] && candidate < bestCandidate))))
+            {
+                bestNearest = nearest;
+                bestCandidate = candidate;
             }
         }
 
         if (bestCandidate == -1) break;
+
+        // find best insertion position in the cyclic tour (insert after index i => pos = i+1)
+        int sz = static_cast<int>(solution.size());
+        int bestPos = 0;
+        int bestDelta = std::numeric_limits<int>::max();
+
+        for (int i = 0; i < sz; ++i)
+        {
+            int a = solution[i];
+            int b = solution[(i + 1) % sz];
+            int added = distanceMatrix[a][bestCandidate] + distanceMatrix[bestCandidate][b];
+            int removed = distanceMatrix[a][b];
+            int delta = costVector[bestCandidate] + (added - removed);
+
+            int insertPos = i + 1;
+            if (delta < bestDelta || (delta == bestDelta && insertPos < bestPos))
+            {
+                bestDelta = delta;
+                bestPos = insertPos;
+            }
+        }
+
+        // insert at computed position (bestPos in range [1..sz], insert at end if equals sz)
+        if (bestPos > (int)solution.size()) bestPos = (int)solution.size();
         solution.insert(solution.begin() + bestPos, bestCandidate);
         used[bestCandidate] = 1;
     }

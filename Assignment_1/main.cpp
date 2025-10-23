@@ -249,7 +249,8 @@ void nearestNeighbourSolution(int **distanceMatrix, std::vector<int> &nodeCostVe
     int worstObjective = std::numeric_limits<int>::min();
     std::vector<int> bestSolution;
 
-    int totalRuns = numberOfSolutionsPerStart * numberOfNodes;
+    // Run a fixed number of constructions (avoid multiplying by numberOfNodes)
+    int totalRuns = numberOfSolutionsPerStart; // <<< use same scale as M6
     for (int run = 0; run < totalRuns; ++run)
     {
         int startNode = startDist(rng);
@@ -303,6 +304,7 @@ void nearestNeighbourSolution(int **distanceMatrix, std::vector<int> &nodeCostVe
 
             if (candidates.empty())
                 break;
+
             std::uniform_int_distribution<int> pick(0, (int)candidates.size() - 1);
             int chosen = candidates[pick(rng)];
             int chosenInsertion = (chosen >> 24) & 0xFF;
@@ -324,7 +326,8 @@ void nearestNeighbourSolution(int **distanceMatrix, std::vector<int> &nodeCostVe
     }
 
     double averageObjective = static_cast<double>(totalSum) / totalRuns;
-    std::cout << "====== Nearest neighbor ======\n";
+    std::cout << "====== Nearest neighbor (insertion) ======\n";
+    std::cout << "  runs = " << totalRuns << "\n";
     std::cout << "  min = " << bestObjective << "\n";
     std::cout << "  max = " << worstObjective << "\n";
     std::cout << "  avg = " << averageObjective << "\n";
@@ -334,158 +337,4 @@ void nearestNeighbourSolution(int **distanceMatrix, std::vector<int> &nodeCostVe
     for (const auto &n : bestSolution)
         std::cout << n << " ";
     std::cout << std::endl;
-}
-
-void fullyGreedySolution(int **distanceMatrix, std::vector<int> &nodeCostVector, int numberOfNodes, int numberOfSolutionsPerStart = 200)
-{
-    if (numberOfNodes <= 0)
-        return;
-
-    int nodesToVisit = (numberOfNodes % 2 == 0) ? (numberOfNodes / 2) : ((numberOfNodes + 1) / 2);
-
-    std::mt19937 rng(std::random_device{}());
-    std::uniform_int_distribution<int> secondNodeDist(0, numberOfNodes - 1);
-
-    long long totalSum = 0;
-    int bestObjective = std::numeric_limits<int>::max();
-    int worstObjective = std::numeric_limits<int>::min();
-    std::vector<int> bestSolution;
-    int bestScore = std::numeric_limits<int>::max();
-
-    for (int startNode = 0; startNode < numberOfNodes; ++startNode)
-    {
-        for (int run = 0; run < numberOfSolutionsPerStart; ++run)
-        {
-            std::vector<int> cycle;
-            cycle.reserve(nodesToVisit);
-            std::vector<char> used(numberOfNodes, 0);
-
-            cycle.push_back(startNode);
-            used[startNode] = 1;
-            if (nodesToVisit > 1)
-            {
-                int second = secondNodeDist(rng);
-                while (used[second])
-                    second = secondNodeDist(rng);
-                cycle.push_back(second);
-                used[second] = 1;
-            }
-
-            while ((int)cycle.size() < nodesToVisit)
-            {
-                int bestDelta = std::numeric_limits<int>::max();
-                std::vector<std::pair<int, int>> candidates;
-
-                for (int node = 0; node < numberOfNodes; ++node)
-                {
-                    if (used[node])
-                        continue;
-                    for (size_t i = 0; i < cycle.size(); ++i)
-                    {
-                        int pred = cycle[i];
-                        int succ = cycle[(i + 1) % cycle.size()];
-                        int added = distanceMatrix[pred][node] + distanceMatrix[node][succ];
-                        int removed = distanceMatrix[pred][succ];
-                        int delta = nodeCostVector[node] + (added - removed);
-                        if (delta < bestDelta)
-                        {
-                            bestDelta = delta;
-                            candidates.clear();
-                            candidates.emplace_back(static_cast<int>(i + 1), node);
-                        }
-                        else if (delta == bestDelta)
-                        {
-                            candidates.emplace_back(static_cast<int>(i + 1), node);
-                        }
-                    }
-                }
-
-                if (candidates.empty())
-                    break;
-                std::uniform_int_distribution<int> pick(0, (int)candidates.size() - 1);
-                auto chosen = candidates[pick(rng)];
-                int insertPos = chosen.first % (int)(cycle.size() + 1);
-                int chosenNode = chosen.second;
-                cycle.insert(cycle.begin() + insertPos, chosenNode);
-                used[chosenNode] = 1;
-            }
-
-            int score = 0;
-            if (!cycle.empty())
-            {
-                for (size_t i = 0; i < cycle.size(); ++i)
-                {
-                    score += nodeCostVector[cycle[i]];
-                    score += distanceMatrix[cycle[i]][cycle[(i + 1) % cycle.size()]];
-                }
-            }
-
-            totalSum += score;
-            if (score < bestObjective)
-                bestObjective = score;
-            if (score > worstObjective)
-                worstObjective = score;
-            if (score < bestScore)
-            {
-                bestScore = score;
-                bestSolution = cycle;
-            }
-        }
-    }
-
-    double average = static_cast<double>(totalSum) / (numberOfNodes * numberOfSolutionsPerStart);
-    std::cout << "====== Fully greedy ======" << std::endl;
-    std::cout << "  min = " << bestObjective << std::endl;
-    std::cout << "  max = " << worstObjective << std::endl;
-    std::cout << "  avg = " << average << std::endl;
-    std::cout << "Best solution score: " << bestScore << std::endl;
-    std::cout << "Best solution (cycle): ";
-    for (const auto &n : bestSolution)
-        std::cout << n << " ";
-    std::cout << std::endl;
-}
-int main()
-{
-    const std::string FILE_NAME = "../TSPA.csv";
-    std::vector<std::vector<int>> data;
-    if (!getDataFromFile(FILE_NAME, data))
-    {
-        std::cerr << "Failed to read data from file." << std::endl;
-        return 1;
-    }
-
-    int size = data.size();
-    int **distanceMatrix = getDistanceMatrix(data, size);
-
-    std::vector<int> costVector = getCostVector(data);
-
-    using Clock = std::chrono::high_resolution_clock;
-
-    auto t0 = Clock::now();
-    randomSolution(distanceMatrix, costVector, size);
-    auto t1 = Clock::now();
-    std::cout << "randomSolution time: " << std::chrono::duration<double>(t1 - t0).count() << " s\n\n";
-
-    t0 = Clock::now();
-    nearestNeighbourSolutionOnlyAtEnd(distanceMatrix, costVector, size);
-    t1 = Clock::now();
-    std::cout << "nearestNeighbourSolutionOnlyAtEnd time: " << std::chrono::duration<double>(t1 - t0).count() << " s\n\n";
-
-    t0 = Clock::now();
-    nearestNeighbourSolution(distanceMatrix, costVector, size);
-    t1 = Clock::now();
-    std::cout << "nearestNeighbourSolution time: " << std::chrono::duration<double>(t1 - t0).count() << " s\n\n";
-
-    t0 = Clock::now();
-    fullyGreedySolution(distanceMatrix, costVector, size);
-    t1 = Clock::now();
-    std::cout << "fullyGreedySolution time: " << std::chrono::duration<double>(t1 - t0).count() << " s\n\n";
-
-    for (int i = 0; i < size; i++)
-    {
-        delete[] distanceMatrix[i];
-    }
-    delete[] distanceMatrix;
-
-    return 0;
 }
