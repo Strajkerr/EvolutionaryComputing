@@ -640,68 +640,77 @@ void M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(int **distanceMatrix,
         {
             improved = false;
 
-            // iterate all unordered pairs in a random order WITHOUT allocating a pair list
+            // iterate indices in random order
             std::vector<int> order(solSize);
             std::iota(order.begin(), order.end(), 0);
             std::shuffle(order.begin(), order.end(), g);
 
-            // 1) intra-route (reorder within selected set)
-            for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
+            // randomize which move-type to try first this iteration: 0 = intra, 1 = inter
+            std::vector<int> moveTypes = {0, 1};
+            std::shuffle(moveTypes.begin(), moveTypes.end(), g);
+
+            for (int moveType : moveTypes)
             {
-                int i = order[oi];
-                for (int oj = oi + 1; oj < solSize; ++oj)
+                if (moveType == 0 && !improved)
                 {
-                    int j = order[oj];
-
-                    std::swap(solution[i], solution[j]);
-                    int newCost = evaluateSolution(solution, distanceMatrix, costVector);
-                    if (newCost < currentCost)
+                    // intra-route (reorder within selected set) - first improvement
+                    for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
                     {
-                        currentCost = newCost;
-                        improved = true;
-                        break; // first improvement accepted
-                    }
-                    else
-                    {
-                        std::swap(solution[i], solution[j]); // revert
-                    }
-                }
-            }
-
-            // 2) inter-route (exchange one selected node with one not-selected) - first improvement
-            if (!improved)
-            {
-                std::vector<char> used(size, 0);
-                for (int v : solution) used[v] = 1;
-                std::vector<int> notSelected;
-                for (int node = 0; node < size; ++node)
-                    if (!used[node]) notSelected.push_back(node);
-
-                if (!notSelected.empty())
-                {
-                    std::shuffle(notSelected.begin(), notSelected.end(), g);
-                    for (int oi2 = 0; oi2 < solSize && !improved; ++oi2)
-                    {
-                        int selIndex = order[oi2];
-                        int oldNode = solution[selIndex];
-                        for (int nc = 0; nc < (int)notSelected.size() && !improved; ++nc)
+                        int i = order[oi];
+                        for (int oj = oi + 1; oj < solSize; ++oj)
                         {
-                            solution[selIndex] = notSelected[nc];
+                            int j = order[oj];
+
+                            std::swap(solution[i], solution[j]);
                             int newCost = evaluateSolution(solution, distanceMatrix, costVector);
                             if (newCost < currentCost)
                             {
                                 currentCost = newCost;
                                 improved = true;
-                                break; // accepted inter-route swap
+                                break; // first improvement accepted
                             }
                             else
                             {
-                                solution[selIndex] = oldNode; // revert
+                                std::swap(solution[i], solution[j]); // revert
                             }
                         }
                     }
                 }
-            }
+                else if (moveType == 1 && !improved)
+                {
+                    // inter-route (exchange one selected node with one not-selected) - first improvement
+                    std::vector<char> used(size, 0);
+                    for (int v : solution) used[v] = 1;
+                    std::vector<int> notSelected;
+                    for (int node = 0; node < size; ++node)
+                        if (!used[node]) notSelected.push_back(node);
+
+                    if (!notSelected.empty())
+                    {
+                        std::shuffle(notSelected.begin(), notSelected.end(), g);
+                        for (int oi2 = 0; oi2 < solSize && !improved; ++oi2)
+                        {
+                            int selIndex = order[oi2];
+                            int oldNode = solution[selIndex];
+                            for (int nc = 0; nc < (int)notSelected.size() && !improved; ++nc)
+                            {
+                                solution[selIndex] = notSelected[nc];
+                                int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                                if (newCost < currentCost)
+                                {
+                                    currentCost = newCost;
+                                    improved = true;
+                                    break; // accepted inter-route swap
+                                }
+                                else
+                                {
+                                    solution[selIndex] = oldNode; // revert
+                                }
+                            }
+                        }
+                    }
+                }
+            } // end for moveTypes
         }
 
         totalSum += currentCost;
@@ -767,52 +776,27 @@ void M6_greedyFirstImprovement_TwoNodeExchange_GreedyStart(int **distanceMatrix,
         {
             improved = false;
 
-            // iterate unordered pairs in random order without building full pair list
+            // iterate indices in random order
             std::vector<int> order(solSize);
             std::iota(order.begin(), order.end(), 0);
             std::shuffle(order.begin(), order.end(), g);
 
-            // 1) intra-route swaps
-            for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
-            {
-                int i = order[oi];
-                for (int oj = oi + 1; oj < solSize; ++oj)
-                {
-                    int j = order[oj];
-                    std::swap(solution[i], solution[j]);
-                    int newCost = evaluateSolution(solution, distanceMatrix, costVector);
-                    if (newCost < currentCost)
-                    {
-                        currentCost = newCost;
-                        improved = true;
-                        break;
-                    }
-                    else
-                    {
-                        std::swap(solution[i], solution[j]);
-                    }
-                }
-            }
+            // randomize which move-type to try first this iteration: 0 = intra, 1 = inter
+            std::vector<int> moveTypes = {0, 1};
+            std::shuffle(moveTypes.begin(), moveTypes.end(), g);
 
-            // 2) inter-route (selected <-> not-selected)
-            if (!improved)
+            for (int moveType : moveTypes)
             {
-                std::vector<char> used(size, 0);
-                for (int v : solution) used[v] = 1;
-                std::vector<int> notSelected;
-                for (int node = 0; node < size; ++node)
-                    if (!used[node]) notSelected.push_back(node);
-
-                if (!notSelected.empty())
+                if (moveType == 0 && !improved)
                 {
-                    std::shuffle(notSelected.begin(), notSelected.end(), g);
-                    for (int oi2 = 0; oi2 < solSize && !improved; ++oi2)
+                    // intra-route swaps (first improvement)
+                    for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
                     {
-                        int selIndex = order[oi2];
-                        int oldNode = solution[selIndex];
-                        for (int nc = 0; nc < (int)notSelected.size() && !improved; ++nc)
+                        int i = order[oi];
+                        for (int oj = oi + 1; oj < solSize; ++oj)
                         {
-                            solution[selIndex] = notSelected[nc];
+                            int j = order[oj];
+                            std::swap(solution[i], solution[j]);
                             int newCost = evaluateSolution(solution, distanceMatrix, costVector);
                             if (newCost < currentCost)
                             {
@@ -822,13 +806,47 @@ void M6_greedyFirstImprovement_TwoNodeExchange_GreedyStart(int **distanceMatrix,
                             }
                             else
                             {
-                                solution[selIndex] = oldNode;
+                                std::swap(solution[i], solution[j]); // revert
                             }
                         }
                     }
                 }
-            }
-        }
+                else if (moveType == 1 && !improved)
+                {
+                    // inter-route (selected <-> not-selected) - first improvement
+                    std::vector<char> used(size, 0);
+                    for (int v : solution) used[v] = 1;
+                    std::vector<int> notSelected;
+                    for (int node = 0; node < size; ++node)
+                        if (!used[node]) notSelected.push_back(node);
+
+                    if (!notSelected.empty())
+                    {
+                        std::shuffle(notSelected.begin(), notSelected.end(), g);
+                        for (int oi2 = 0; oi2 < solSize && !improved; ++oi2)
+                        {
+                            int selIndex = order[oi2];
+                            int oldNode = solution[selIndex];
+                            for (int nc = 0; nc < (int)notSelected.size() && !improved; ++nc)
+                            {
+                                solution[selIndex] = notSelected[nc];
+                                int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                                if (newCost < currentCost)
+                                {
+                                    currentCost = newCost;
+                                    improved = true;
+                                    break;
+                                }
+                                else
+                                {
+                                    solution[selIndex] = oldNode;
+                                }
+                            }
+                        }
+                    }
+                }
+            } // end for moveTypes
+        } // end while improved
 
         totalSum += currentCost;
         if (currentCost < bestObjective)
@@ -893,26 +911,73 @@ void M7_greedyFirstImprovement_TwoEdgeExchange_RandomStart(int **distanceMatrix,
             std::iota(order.begin(), order.end(), 0);
             std::shuffle(order.begin(), order.end(), g);
 
-            for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
+            // randomize which move-type to try first this iteration: 0 = intra 2-opt, 1 = inter-route node exchange
+            std::vector<int> moveTypes = {0, 1};
+            std::shuffle(moveTypes.begin(), moveTypes.end(), g);
+
+            for (int moveType : moveTypes)
             {
-                int i = order[oi];
-                for (int oj = oi + 1; oj < solSize; ++oj)
+                if (moveType == 0 && !improved)
                 {
-                    int j = order[oj];
-                    std::reverse(solution.begin() + i, solution.begin() + j + 1);
-                    int newCost = evaluateSolution(solution, distanceMatrix, costVector);
-                    if (newCost < currentCost)
+                    // intra-route 2-opt (first improvement)
+                    for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
                     {
-                        currentCost = newCost;
-                        improved = true;
-                        break; // first improvement
-                    }
-                    else
-                    {
-                        std::reverse(solution.begin() + i, solution.begin() + j + 1); // revert
+                        int pos_i = order[oi];
+                        for (int oj = oi + 1; oj < solSize && !improved; ++oj)
+                        {
+                            int pos_j = order[oj];
+                            int a = std::min(pos_i, pos_j);
+                            int b = std::max(pos_i, pos_j);
+                            std::reverse(solution.begin() + a, solution.begin() + b + 1);
+                            int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                            if (newCost < currentCost)
+                            {
+                                currentCost = newCost;
+                                improved = true;
+                                break; // first improvement
+                            }
+                            else
+                            {
+                                std::reverse(solution.begin() + a, solution.begin() + b + 1); // revert
+                            }
+                        }
                     }
                 }
-            }
+                else if (moveType == 1 && !improved)
+                {
+                    // inter-route (selected <-> not-selected) - first improvement
+                    std::vector<char> used(size, 0);
+                    for (int v : solution) used[v] = 1;
+                    std::vector<int> notSelected;
+                    for (int node = 0; node < size; ++node)
+                        if (!used[node]) notSelected.push_back(node);
+
+                    if (!notSelected.empty())
+                    {
+                        std::shuffle(notSelected.begin(), notSelected.end(), g);
+                        for (int oi2 = 0; oi2 < solSize && !improved; ++oi2)
+                        {
+                            int selIndex = order[oi2];
+                            int oldNode = solution[selIndex];
+                            for (int nc = 0; nc < (int)notSelected.size() && !improved; ++nc)
+                            {
+                                solution[selIndex] = notSelected[nc];
+                                int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                                if (newCost < currentCost)
+                                {
+                                    currentCost = newCost;
+                                    improved = true;
+                                    break;
+                                }
+                                else
+                                {
+                                    solution[selIndex] = oldNode;
+                                }
+                            }
+                        }
+                    }
+                }
+            } // end for moveTypes
         }
 
         totalSum += currentCost;
@@ -975,47 +1040,24 @@ void M8_greedyFirstImprovement_TwoEdgeExchange_GreedyStart(int **distanceMatrix,
             std::iota(order.begin(), order.end(), 0);
             std::shuffle(order.begin(), order.end(), g);
 
-            // 1) intra-route 2-opt
-            for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
-            {
-                int i = order[oi];
-                for (int oj = oi + 1; oj < solSize; ++oj)
-                {
-                    int j = order[oj];
-                    std::reverse(solution.begin() + i, solution.begin() + j + 1);
-                    int newCost = evaluateSolution(solution, distanceMatrix, costVector);
-                    if (newCost < currentCost)
-                    {
-                        currentCost = newCost;
-                        improved = true;
-                        break;
-                    }
-                    else
-                    {
-                        std::reverse(solution.begin() + i, solution.begin() + j + 1); // revert
-                    }
-                }
-            }
+            // randomize which move-type to try first this iteration: 0 = intra 2-opt, 1 = inter-route node exchange
+            std::vector<int> moveTypes = {0, 1};
+            std::shuffle(moveTypes.begin(), moveTypes.end(), g);
 
-            // 2) inter-route (selected <-> not-selected)
-            if (!improved)
+            for (int moveType : moveTypes)
             {
-                std::vector<char> used(size, 0);
-                for (int v : solution) used[v] = 1;
-                std::vector<int> notSelected;
-                for (int node = 0; node < size; ++node)
-                    if (!used[node]) notSelected.push_back(node);
-
-                if (!notSelected.empty())
+                if (moveType == 0 && !improved)
                 {
-                    std::shuffle(notSelected.begin(), notSelected.end(), g);
-                    for (int oi2 = 0; oi2 < solSize && !improved; ++oi2)
+                    // intra-route 2-opt
+                    for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
                     {
-                        int selIndex = order[oi2];
-                        int oldNode = solution[selIndex];
-                        for (int nc = 0; nc < (int)notSelected.size() && !improved; ++nc)
+                        int pos_i = order[oi];
+                        for (int oj = oi + 1; oj < solSize && !improved; ++oj)
                         {
-                            solution[selIndex] = notSelected[nc];
+                            int pos_j = order[oj];
+                            int a = std::min(pos_i, pos_j);
+                            int b = std::max(pos_i, pos_j);
+                            std::reverse(solution.begin() + a, solution.begin() + b + 1);
                             int newCost = evaluateSolution(solution, distanceMatrix, costVector);
                             if (newCost < currentCost)
                             {
@@ -1025,12 +1067,46 @@ void M8_greedyFirstImprovement_TwoEdgeExchange_GreedyStart(int **distanceMatrix,
                             }
                             else
                             {
-                                solution[selIndex] = oldNode;
+                                std::reverse(solution.begin() + a, solution.begin() + b + 1); // revert
                             }
                         }
                     }
                 }
-            }
+                else if (moveType == 1 && !improved)
+                {
+                    // inter-route (selected <-> not-selected)
+                    std::vector<char> used(size, 0);
+                    for (int v : solution) used[v] = 1;
+                    std::vector<int> notSelected;
+                    for (int node = 0; node < size; ++node)
+                        if (!used[node]) notSelected.push_back(node);
+
+                    if (!notSelected.empty())
+                    {
+                        std::shuffle(notSelected.begin(), notSelected.end(), g);
+                        for (int oi2 = 0; oi2 < solSize && !improved; ++oi2)
+                        {
+                            int selIndex = order[oi2];
+                            int oldNode = solution[selIndex];
+                            for (int nc = 0; nc < (int)notSelected.size() && !improved; ++nc)
+                            {
+                                solution[selIndex] = notSelected[nc];
+                                int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                                if (newCost < currentCost)
+                                {
+                                    currentCost = newCost;
+                                    improved = true;
+                                    break;
+                                }
+                                else
+                                {
+                                    solution[selIndex] = oldNode;
+                                }
+                            }
+                        }
+                    }
+                }
+            } // end for moveTypes
         }
 
         totalSum += currentCost;
