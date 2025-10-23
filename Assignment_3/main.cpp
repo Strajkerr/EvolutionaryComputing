@@ -640,31 +640,30 @@ void M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(int **distanceMatrix,
         {
             improved = false;
 
-            // generate all possible two-node exchanges (i < j) for the current solution length
-            std::vector<std::pair<int, int>> moves;
-            moves.reserve((solSize * (solSize - 1)) / 2);
-            for (int i = 0; i < solSize - 1; ++i)
-                for (int j = i + 1; j < solSize; ++j)
-                    moves.emplace_back(i, j);
+            // iterate all unordered pairs in a random order WITHOUT allocating a pair list
+            std::vector<int> order(solSize);
+            std::iota(order.begin(), order.end(), 0);
+            std::shuffle(order.begin(), order.end(), g);
 
-            std::shuffle(moves.begin(), moves.end(), g);
-
-            // apply first improving move found
-            for (const auto &mv : moves)
+            for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
             {
-                int i = mv.first;
-                int j = mv.second;
-                std::swap(solution[i], solution[j]);
-                int newCost = evaluateSolution(solution, distanceMatrix, costVector);
-                if (newCost < currentCost)
+                int i = order[oi];
+                for (int oj = oi + 1; oj < solSize; ++oj)
                 {
-                    currentCost = newCost;
-                    improved = true;
-                    break; // first improvement accepted
-                }
-                else
-                {
-                    std::swap(solution[i], solution[j]); // revert
+                    int j = order[oj];
+
+                    std::swap(solution[i], solution[j]);
+                    int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                    if (newCost < currentCost)
+                    {
+                        currentCost = newCost;
+                        improved = true;
+                        break; // first improvement accepted
+                    }
+                    else
+                    {
+                        std::swap(solution[i], solution[j]); // revert
+                    }
                 }
             }
         }
@@ -731,29 +730,30 @@ void M6_greedyFirstImprovement_TwoNodeExchange_GreedyStart(int **distanceMatrix,
         while (improved)
         {
             improved = false;
-            std::vector<std::pair<int, int>> moves;
-            moves.reserve((solSize * (solSize - 1)) / 2);
-            for (int i = 0; i < solSize - 1; ++i)
-                for (int j = i + 1; j < solSize; ++j)
-                    moves.emplace_back(i, j);
 
-            std::shuffle(moves.begin(), moves.end(), g);
+            // iterate unordered pairs in random order without building full pair list
+            std::vector<int> order(solSize);
+            std::iota(order.begin(), order.end(), 0);
+            std::shuffle(order.begin(), order.end(), g);
 
-            for (const auto &mv : moves)
+            for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
             {
-                int i = mv.first;
-                int j = mv.second;
-                std::swap(solution[i], solution[j]);
-                int newCost = evaluateSolution(solution, distanceMatrix, costVector);
-                if (newCost < currentCost)
+                int i = order[oi];
+                for (int oj = oi + 1; oj < solSize; ++oj)
                 {
-                    currentCost = newCost;
-                    improved = true;
-                    break;
-                }
-                else
-                {
+                    int j = order[oj];
                     std::swap(solution[i], solution[j]);
+                    int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                    if (newCost < currentCost)
+                    {
+                        currentCost = newCost;
+                        improved = true;
+                        break;
+                    }
+                    else
+                    {
+                        std::swap(solution[i], solution[j]);
+                    }
                 }
             }
         }
@@ -815,28 +815,30 @@ void M7_greedyFirstImprovement_TwoEdgeExchange_RandomStart(int **distanceMatrix,
         while (improved)
         {
             improved = false;
-            std::vector<std::pair<int,int>> moves;
-            moves.reserve((solSize * (solSize - 1)) / 2);
-            for (int i = 0; i < solSize - 1; ++i)
-                for (int j = i + 1; j < solSize; ++j)
-                    moves.emplace_back(i, j);
 
-            std::shuffle(moves.begin(), moves.end(), g);
+            // iterate unordered index pairs in random order without building full pair list
+            std::vector<int> order(solSize);
+            std::iota(order.begin(), order.end(), 0);
+            std::shuffle(order.begin(), order.end(), g);
 
-            for (const auto &mv : moves)
+            for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
             {
-                int i = mv.first, j = mv.second;
-                std::reverse(solution.begin() + i, solution.begin() + j + 1);
-                int newCost = evaluateSolution(solution, distanceMatrix, costVector);
-                if (newCost < currentCost)
+                int i = order[oi];
+                for (int oj = oi + 1; oj < solSize; ++oj)
                 {
-                    currentCost = newCost;
-                    improved = true;
-                    break; // first improvement
-                }
-                else
-                {
-                    std::reverse(solution.begin() + i, solution.begin() + j + 1); // revert
+                    int j = order[oj];
+                    std::reverse(solution.begin() + i, solution.begin() + j + 1);
+                    int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                    if (newCost < currentCost)
+                    {
+                        currentCost = newCost;
+                        improved = true;
+                        break; // first improvement
+                    }
+                    else
+                    {
+                        std::reverse(solution.begin() + i, solution.begin() + j + 1); // revert
+                    }
                 }
             }
         }
@@ -895,28 +897,30 @@ void M8_greedyFirstImprovement_TwoEdgeExchange_GreedyStart(int **distanceMatrix,
         while (improved)
         {
             improved = false;
-            std::vector<std::pair<int,int>> moves;
-            moves.reserve((solSize * (solSize - 1)) / 2);
-            for (int i = 0; i < solSize - 1; ++i)
-                for (int j = i + 1; j < solSize; ++j)
-                    moves.emplace_back(i, j);
 
-            std::shuffle(moves.begin(), moves.end(), g);
+            // iterate unordered index pairs in random order without building full pair list
+            std::vector<int> order(solSize);
+            std::iota(order.begin(), order.end(), 0);
+            std::shuffle(order.begin(), order.end(), g);
 
-            for (const auto &mv : moves)
+            for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
             {
-                int i = mv.first, j = mv.second;
-                std::reverse(solution.begin() + i, solution.begin() + j + 1);
-                int newCost = evaluateSolution(solution, distanceMatrix, costVector);
-                if (newCost < currentCost)
+                int i = order[oi];
+                for (int oj = oi + 1; oj < solSize; ++oj)
                 {
-                    currentCost = newCost;
-                    improved = true;
-                    break;
-                }
-                else
-                {
-                    std::reverse(solution.begin() + i, solution.begin() + j + 1); // revert
+                    int j = order[oj];
+                    std::reverse(solution.begin() + i, solution.begin() + j + 1);
+                    int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                    if (newCost < currentCost)
+                    {
+                        currentCost = newCost;
+                        improved = true;
+                        break;
+                    }
+                    else
+                    {
+                        std::reverse(solution.begin() + i, solution.begin() + j + 1); // revert
+                    }
                 }
             }
         }
