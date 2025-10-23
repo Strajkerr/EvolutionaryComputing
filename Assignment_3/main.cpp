@@ -645,6 +645,7 @@ void M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(int **distanceMatrix,
             std::iota(order.begin(), order.end(), 0);
             std::shuffle(order.begin(), order.end(), g);
 
+            // 1) intra-route (reorder within selected set)
             for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
             {
                 int i = order[oi];
@@ -663,6 +664,41 @@ void M5_greedyFirstImprovement_TwoNodeExchange_RandomStart(int **distanceMatrix,
                     else
                     {
                         std::swap(solution[i], solution[j]); // revert
+                    }
+                }
+            }
+
+            // 2) inter-route (exchange one selected node with one not-selected) - first improvement
+            if (!improved)
+            {
+                std::vector<char> used(size, 0);
+                for (int v : solution) used[v] = 1;
+                std::vector<int> notSelected;
+                for (int node = 0; node < size; ++node)
+                    if (!used[node]) notSelected.push_back(node);
+
+                if (!notSelected.empty())
+                {
+                    std::shuffle(notSelected.begin(), notSelected.end(), g);
+                    for (int oi2 = 0; oi2 < solSize && !improved; ++oi2)
+                    {
+                        int selIndex = order[oi2];
+                        int oldNode = solution[selIndex];
+                        for (int nc = 0; nc < (int)notSelected.size() && !improved; ++nc)
+                        {
+                            solution[selIndex] = notSelected[nc];
+                            int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                            if (newCost < currentCost)
+                            {
+                                currentCost = newCost;
+                                improved = true;
+                                break; // accepted inter-route swap
+                            }
+                            else
+                            {
+                                solution[selIndex] = oldNode; // revert
+                            }
+                        }
                     }
                 }
             }
@@ -736,6 +772,7 @@ void M6_greedyFirstImprovement_TwoNodeExchange_GreedyStart(int **distanceMatrix,
             std::iota(order.begin(), order.end(), 0);
             std::shuffle(order.begin(), order.end(), g);
 
+            // 1) intra-route swaps
             for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
             {
                 int i = order[oi];
@@ -753,6 +790,41 @@ void M6_greedyFirstImprovement_TwoNodeExchange_GreedyStart(int **distanceMatrix,
                     else
                     {
                         std::swap(solution[i], solution[j]);
+                    }
+                }
+            }
+
+            // 2) inter-route (selected <-> not-selected)
+            if (!improved)
+            {
+                std::vector<char> used(size, 0);
+                for (int v : solution) used[v] = 1;
+                std::vector<int> notSelected;
+                for (int node = 0; node < size; ++node)
+                    if (!used[node]) notSelected.push_back(node);
+
+                if (!notSelected.empty())
+                {
+                    std::shuffle(notSelected.begin(), notSelected.end(), g);
+                    for (int oi2 = 0; oi2 < solSize && !improved; ++oi2)
+                    {
+                        int selIndex = order[oi2];
+                        int oldNode = solution[selIndex];
+                        for (int nc = 0; nc < (int)notSelected.size() && !improved; ++nc)
+                        {
+                            solution[selIndex] = notSelected[nc];
+                            int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                            if (newCost < currentCost)
+                            {
+                                currentCost = newCost;
+                                improved = true;
+                                break;
+                            }
+                            else
+                            {
+                                solution[selIndex] = oldNode;
+                            }
+                        }
                     }
                 }
             }
@@ -903,6 +975,7 @@ void M8_greedyFirstImprovement_TwoEdgeExchange_GreedyStart(int **distanceMatrix,
             std::iota(order.begin(), order.end(), 0);
             std::shuffle(order.begin(), order.end(), g);
 
+            // 1) intra-route 2-opt
             for (int oi = 0; oi < solSize - 1 && !improved; ++oi)
             {
                 int i = order[oi];
@@ -920,6 +993,41 @@ void M8_greedyFirstImprovement_TwoEdgeExchange_GreedyStart(int **distanceMatrix,
                     else
                     {
                         std::reverse(solution.begin() + i, solution.begin() + j + 1); // revert
+                    }
+                }
+            }
+
+            // 2) inter-route (selected <-> not-selected)
+            if (!improved)
+            {
+                std::vector<char> used(size, 0);
+                for (int v : solution) used[v] = 1;
+                std::vector<int> notSelected;
+                for (int node = 0; node < size; ++node)
+                    if (!used[node]) notSelected.push_back(node);
+
+                if (!notSelected.empty())
+                {
+                    std::shuffle(notSelected.begin(), notSelected.end(), g);
+                    for (int oi2 = 0; oi2 < solSize && !improved; ++oi2)
+                    {
+                        int selIndex = order[oi2];
+                        int oldNode = solution[selIndex];
+                        for (int nc = 0; nc < (int)notSelected.size() && !improved; ++nc)
+                        {
+                            solution[selIndex] = notSelected[nc];
+                            int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                            if (newCost < currentCost)
+                            {
+                                currentCost = newCost;
+                                improved = true;
+                                break;
+                            }
+                            else
+                            {
+                                solution[selIndex] = oldNode;
+                            }
+                        }
                     }
                 }
             }
