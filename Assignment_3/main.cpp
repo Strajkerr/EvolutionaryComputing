@@ -289,7 +289,6 @@ void M1_steepestDescent_TwoNodeExchange_RandomStart(int **distanceMatrix, std::v
     for (int run = 0; run < totalRuns; ++run)
     {
         std::vector<int> solution = randomPermutation(size, g);
-
         int currentCost = evaluateSolution(solution, distanceMatrix, costVector);
 
         bool improved = true;
@@ -300,9 +299,10 @@ void M1_steepestDescent_TwoNodeExchange_RandomStart(int **distanceMatrix, std::v
             int bestI = -1;
             int bestJ = -1;
 
-            for (int i = 0; i < size - 1; ++i)
+            int solSize = static_cast<int>(solution.size());
+            for (int i = 0; i < solSize - 1; ++i)
             {
-                for (int j = i + 1; j < size; ++j)
+                for (int j = i + 1; j < solSize; ++j)
                 {
                     std::swap(solution[i], solution[j]);
                     int newCost = evaluateSolution(solution, distanceMatrix, costVector);
@@ -377,7 +377,6 @@ void M2_steepestDescent_TwoNodeExchange_GreedyStart(int **distanceMatrix, std::v
         std::vector<int> solution = constructGreedyInsertion(distanceMatrix, costVector, size, startNode);
 
         int currentCost = evaluateSolution(solution, distanceMatrix, costVector);
-
         bool improved = true;
         while(improved)
         {
@@ -386,9 +385,10 @@ void M2_steepestDescent_TwoNodeExchange_GreedyStart(int **distanceMatrix, std::v
             int bestI = -1;
             int bestJ = -1;
 
-            for (int i = 0; i < size - 1; ++i)
+            int solSize = static_cast<int>(solution.size());
+            for (int i = 0; i < solSize - 1; ++i)
             {
-                for (int j = i + 1; j < size; ++j)
+                for (int j = i + 1; j < solSize; ++j)
                 {
                     std::swap(solution[i], solution[j]);
                     int newCost = evaluateSolution(solution, distanceMatrix, costVector);
@@ -458,7 +458,6 @@ void M3_steepestDescent_TwoEdgeExchange_RandomStart(int **distanceMatrix, std::v
 
     for (int run = 0; run < totalRuns; ++run)
     {
-        std::cout << "\n" << run;
         std::vector<int> solution = randomPermutation(size, g);
 
         int currentCost = evaluateSolution(solution, distanceMatrix, costVector);
@@ -471,9 +470,10 @@ void M3_steepestDescent_TwoEdgeExchange_RandomStart(int **distanceMatrix, std::v
             int bestI = -1;
             int bestJ = -1;
 
-            for (int i = 0; i < size - 1; ++i)
+            int solSize = static_cast<int>(solution.size());
+            for (int i = 0; i < solSize - 1; ++i)
             {
-                for (int j = i + 1; j < size; ++j)
+                for (int j = i + 1; j < solSize; ++j)
                 {
                     std::reverse(solution.begin() + i, solution.begin() + j + 1);
                     int newCost = evaluateSolution(solution, distanceMatrix, costVector);
@@ -555,9 +555,10 @@ void M4_steepestDescent_TwoEdgeExchange_GreedyStart(int **distanceMatrix, std::v
             int bestI = -1;
             int bestJ = -1;
 
-            for (int i = 0; i < size - 1; ++i)
+            int solSize = static_cast<int>(solution.size());
+            for (int i = 0; i < solSize - 1; ++i)
             {
-                for (int j = i + 1; j < size; ++j)
+                for (int j = i + 1; j < solSize; ++j)
                 {
                     std::reverse(solution.begin() + i, solution.begin() + j + 1);
                     int newCost = evaluateSolution(solution, distanceMatrix, costVector);
