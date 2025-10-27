@@ -538,12 +538,14 @@ void M4_steepestDescent_TwoEdgeExchange_GreedyStart(int **distanceMatrix, std::v
     long long totalSum = 0;
     int bestObjective = std::numeric_limits<int>::max();
     int worstObjective = std::numeric_limits<int>::min();
+    std::uniform_int_distribution<int> startDist(0, size - 1);
+
     std::vector<int> bestSolution;
     auto startTime = std::chrono::high_resolution_clock::now();
-
-    for (int run = 0; run < totalRuns; run++)
+    for (int run = 0; run < totalRuns; ++run)
     {
-        std::vector<int> solution = randomPermutation(size, g);
+        int startNode = startDist(g);
+        std::vector<int> solution = constructGreedyInsertion(distanceMatrix, costVector, size, startNode);
 
         int currentCost = evaluateSolution(solution, distanceMatrix, costVector);
 
