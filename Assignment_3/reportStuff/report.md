@@ -490,21 +490,12 @@ Best found cycle (example, TSPB):
 
 ## Conclusions
 
-
 This assignment explored greedy regret-based heuristics for the TSP with node selection, comparing standard 2-regret against a weighted variant that combines regret with greedy objective minimization.
 
-### Key Findings
-
-TODO
-
-
-### Implementation insights
-
-TODO
 ---
 
 ### Outcomes were checked with the solution checker
 
 ### Link to the source code (Github repository - directory Assignment 3)
 
-[Assignment 2](https://github.com/Strajkerr/EvolutionaryComputing/tree/main/Assignment_3)
+[Assignment 3](https://github.com/Strajkerr/EvolutionaryComputing/tree/main/Assignment_3)
