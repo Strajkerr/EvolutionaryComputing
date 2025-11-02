@@ -419,7 +419,6 @@ void M2_steepestDescent_TwoNodeExchange_GreedyStart(int **distanceMatrix, std::v
         if (solSize <= 0) continue;
         
         int currentCost = evaluateSolution(solution, distanceMatrix, costVector);
-
         bool improved = true;
         while(improved)
         {
@@ -538,7 +537,6 @@ void M3_steepestDescent_TwoEdgeExchange_RandomStart(int **distanceMatrix, std::v
 
     for (int run = 0; run < totalRuns; ++run)
     {
-        // BUG 4 FIX: Removed debug print
         std::vector<int> solution = randomPermutation(size, g);
         int solSize = static_cast<int>(solution.size());
         if (solSize <= 0) continue;
