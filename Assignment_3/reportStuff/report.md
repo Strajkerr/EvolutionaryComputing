@@ -1,4 +1,4 @@
-# Assignment 3 - Local search
+# Assignment 2 - Local search
 
 ### Prepared by
 
@@ -30,10 +30,10 @@ instances defined only by distance matrices.
 | Greedy (fully greedy insertion) | 72694.4 (70285 – 76228) | 50345.1 (46166 – 58032) |
 | Greedy 2‑regret | 72370.8 (68080 – 77702) | 114825 (105864 – 123334) |
 | Greedy 2‑regret weighted (α=0.5) | 50842.2 (47367 – 54016) | 72096.1 (71062 – 73532) |
-| M1 — Steepest descent, 2-node exchange (random start) | 139207 (126351 – 156694) | 91658.3 (82300 – 103709) |
-| M2 — Steepest descent, 2-node exchange (greedy start) | 115224 (113368 – 117216) | 66844.2 (62651 – 70323) |
-| M3 — Steepest descent, 2-edge (random start) | 121833 (111285 – 138170) | 73264.6 (67505 – 79546) |
-| M4 — Steepest descent, 2-edge (greedy start) | 113771 (111298 – 114947) | 65580.6 (62208 – 68917) |
+| M1 — Steepest descent, 2-node exchange (random start) | 88008.9 (80261 – 97609) | 62910.1 (56293 – 69558) |
+| M2 — Steepest descent, 2-node exchange (greedy start) | 94771.5 (87362 – 101867) | 60280.5 (59303 – 63062) |
+| M3 — Steepest descent, 2-edge (random start) | 73932.8 (70795 – 79370) | 48209.6 (45521 – 51880) |
+| M4 — Steepest descent, 2-edge (greedy start) | 93879.3 (86202 – 99484) | 59034.7 (57620 – 61810) |
 | M5 — Greedy first‑improvement, 2-node exchange (random start) | 85731 (78963 – 92428) | 60899.2 (54007 – 68549) |
 | M6 — Greedy first‑improvement, 2-node exchange (greedy start) | 91366.9 (84058 – 100296) | 60717.1 (56993 – 64953) |
 | M7 — Greedy first‑improvement, 2-edge (random start) | 73148.5 (71193 – 76253) | 47868.2 (45039 – 51839) |
@@ -49,10 +49,10 @@ instances defined only by distance matrices.
 | Greedy (fully greedy insertion) | 52.5566 s | 52.7421 s |
 | Greedy 2‑regret | 31.67 s | 31.55 s |
 | Greedy 2‑regret weighted (α=0.5) | 34.35 s | 34.16 s |
-| M1 — Steepest descent, 2-node exchange (random start) | 187.817 s | 187.973 s |
-| M2 — Steepest descent, 2-node exchange (greedy start) | 23.2958 s | 15.213 s |
-| M3 — Steepest descent, 2-edge (random start) | 259.382 s | 206.591 s |
-| M4 — Steepest descent, 2-edge (greedy start) | 59.1339 s | 29.784 s |
+| M1 — Steepest descent, 2-node exchange (random start) | 382.404 s | 366.994 s |
+| M2 — Steepest descent, 2-node exchange (greedy start) | 141.461 s | 82.1686 s |
+| M3 — Steepest descent, 2-edge (random start) | 414.305 s | 416.109 s |
+| M4 — Steepest descent, 2-edge (greedy start) | 177.373 s | 124.25 s |
 | M5 — Greedy first‑improvement, 2-node exchange (random start) | 8.07472 s | 5.15502 s |
 | M6 — Greedy first‑improvement, 2-node exchange (greedy start) | 3.36837 s | 2.17246 s |
 | M7 — Greedy first‑improvement, 2-edge (random start) | 6.69207 s | 4.56621 s |
@@ -63,177 +63,255 @@ instances defined only by distance matrices.
 ### M1
 
 #### Description
-Steepest-descent local search using 2-node exchange (swap) moves. The algorithm starts from a random feasible solution and repeatedly applies the single best improving 2-node swap found across the whole neighbourhood until no improvement exists.
-
-- Start: random feasible solution.
-- Neighbourhood: all pairwise swaps of two nodes in the current cycle (intra-route 2-node exchange).
-- Strategy: steepest descent — evaluate all candidate swaps, pick the one with largest decrease in objective, apply it, and repeat until no improving swap exists.
+- Steepest-descent local search using 2-node exchanges (swap of two selected nodes) starting from a random feasible solution.
+- Neighbourhood: all pairwise swaps of two nodes in the selected set (and inter-route selected↔not‑selected exchanges where implemented).
+- Strategy: evaluate all candidate moves and apply the best (steepest) improvement; repeat until no improving move exists.
 
 #### Pseudocode
 ``` pseudocode
 startSolution <- random_permutation(nodes)
+currentCost <- evaluate(startSolution)
 improved <- true
 while improved:
   improved <- false
-  bestMove <- null
   bestDelta <- 0
-  for each unordered pair (i,j) of indices in startSolution:
-    delta <- newCost - currentCost
-    if delta < bestDelta:
-      bestDelta <- delta
-      bestMove <- (i,j)
-  if bestMove != null:
-    apply_swap(startSolution, bestMove)
+  bestMove <- null
+
+  for i in 0..|startSolution|-2:
+    for j in i+1..|startSolution|-1:
+      swap(startSolution[i], startSolution[j])
+      newCost <- evaluate(startSolution)
+      delta <- newCost - currentCost
+      if delta < bestDelta:
+        bestDelta <- delta; bestMove <- (type=INTRA_SWAP,i,j)
+      swap(startSolution[i], startSolution[j])
+
+  used <- boolean vector marking nodes in startSolution
+  for i in 0..|startSolution|-1:
+    old <- startSolution[i]
+    for newNode in 0..n-1:
+      if used[newNode] then continue
+      startSolution[i] <- newNode
+      newCost <- evaluate(startSolution)
+      delta <- newCost - currentCost
+      if delta < bestDelta:
+        bestDelta <- delta; bestMove <- (type=INTER_EXCHANGE,i,newNode)
+    startSolution[i] <- old
+
+  if bestDelta < 0:
+    apply bestMove to startSolution (swap or replace)
+    currentCost <- currentCost + bestDelta
     improved <- true
-return startSolution
 ```
 
 #### Results (summary)
 
-TSPA best cycle:
+| Instance | runs | avg (min – max) | Execution time |
+|---|---:|---:|---:|
+| TSPA | 200 | 88008.9 (80261 – 97609) | 382.404 s |
+| TSPB | 200 | 62910.1 (56293 – 69558) | 366.994 s |
+
+Best found cycle (example, TSPA):
 ```
-135 126 4 123 122 172 57 185 40 119 39 138 169 196 17 145 106 178 3 155 15 186 23 141 117 114 132 21 7 164 27 174 85 50 113 31 168 78 44 101 97 189 19 152 125 26 53 158 136 182 63 133 161 184 160 192 41 139 198 68 93 140 36 163 108 69 159 146 103 54 10 190 35 11 166 149 151 80 16 171 13 129 128 167 72 116 105 42 5 96 197 118 176 9 62 111 124 180 154 6 135 (back to start)
+193 159 181 42 43 116 65 59 118 117 93 140 68 46 115 160 184 123 127 70 135 154 86 101 1 97 121 80 137 186 15 144 21 165 138 14 102 62 9 49 178 106 55 129 2 152 189 94 124 179 31 56 113 175 171 16 120 75 26 100 53 158 180 162 151 133 79 63 52 185 40 90 81 196 145 78 25 44 92 57 148 23 89 183 143 0 176 51 149 112 4 177 54 34 22 18 108 69 139 41 193 (back to start)
 ```
 
 ![](M1_tspa.png)
 
-TSPB best cycle:
+Best found cycle (example, TSPB):
 ```
-177 123 190 80 46 175 21 119 95 99 185 176 180 26 137 127 89 163 187 77 58 50 55 174 140 59 101 149 4 53 155 84 161 168 188 115 133 72 40 63 102 38 16 135 125 90 191 71 67 6 43 11 49 0 124 128 110 179 66 94 148 23 20 69 160 33 138 182 2 74 151 54 31 173 157 56 8 159 143 189 167 34 86 166 48 194 81 61 7 142 193 117 198 30 196 42 1 116 118 171 177 (back to start)
+163 103 194 166 86 95 130 60 20 28 149 4 152 140 183 148 47 94 66 179 185 55 18 62 104 5 142 175 78 177 8 82 21 61 36 45 80 190 117 1 63 40 107 133 10 191 90 122 135 131 51 134 34 170 184 155 15 145 139 11 29 0 35 111 141 77 81 153 159 143 3 70 188 169 132 13 195 168 160 33 138 25 73 164 193 31 54 121 125 71 147 6 109 124 106 176 113 114 127 89 163 (back to start)
 ```
+
 ![](M1_tspb.png)
 
 ### M2
 
 #### Description
-Steepest-descent local search using 2-node exchange (swap) moves, started from a greedy constructed feasible solution. The greedy start is formed by best-position insertion (greedy insertion) with a randomly chosen start node. From that starting cycle the algorithm performs steepest-descent 2-node swaps until no improvement exists.
-
-- Start: greedy feasible solution (best-insertion with random start node).
-- Neighbourhood: all pairwise swaps of two nodes in the current cycle (intra-route 2-node exchange).
-- Strategy: steepest descent — evaluate all candidate swaps, pick the best improving swap, apply, repeat until no improvement.
+- Steepest-descent local search using 2-node exchanges but starting from a greedy feasible solution (best-insertion construction).
 
 #### Pseudocode
 ``` pseudocode
-startNode <- random_choice(nodes)
-startSolution <- construct_greedy_insertion(startNode)
+startSolution <- construct_greedy_insertion(random_start_node)
+currentCost <- evaluate(startSolution)
 improved <- true
 while improved:
   improved <- false
-  bestMove <- null
   bestDelta <- 0
-  for each unordered pair (i,j) of indices in startSolution:
-    delta <- newCost - currentCost
-    if delta < bestDelta:
-      bestDelta <- delta
-      bestMove <- (i,j)
-  if bestMove != null:
-    apply_swap(startSolution, bestMove)
+  bestMove <- null
+
+  for i in 0..|startSolution|-2:
+    for j in i+1..|startSolution|-1:
+      swap(startSolution[i], startSolution[j])
+      newCost <- evaluate(startSolution)
+      delta <- newCost - currentCost
+      if delta < bestDelta:
+        bestDelta <- delta; bestMove <- (INTRA_SWAP,i,j)
+      swap(startSolution[i], startSolution[j])
+
+  used <- boolean vector marking nodes in startSolution
+  for i in 0..|startSolution|-1:
+    old <- startSolution[i]
+    for newNode in 0..n-1:
+      if used[newNode] then continue
+      startSolution[i] <- newNode
+      newCost <- evaluate(startSolution)
+      delta <- newCost - currentCost
+      if delta < bestDelta:
+        bestDelta <- delta; bestMove <- (INTER_EXCHANGE,i,newNode)
+    startSolution[i] <- old
+
+  if bestDelta < 0:
+    apply bestMove
+    currentCost <- currentCost + bestDelta
     improved <- true
-return startSolution
 ```
 
 #### Results (summary)
 
-TSPA best cycle:
+| Instance | runs | avg (min – max) | Execution time |
+|---|---:|---:|---:|
+| TSPA | 200 | 94771.5 (87362 – 101867) | 141.461 s |
+| TSPB | 200 | 60280.5 (59303 – 63062) | 82.1686 s |
+
+Best found cycle (example, TSPA):
 ```
-190 10 177 104 147 54 30 48 160 192 181 195 103 146 22 159 193 41 142 110 191 139 115 198 46 60 118 141 66 176 80 122 94 130 12 124 19 189 99 121 97 152 74 125 87 2 1 101 150 75 86 26 100 53 158 154 6 70 135 194 173 180 136 182 63 79 133 161 162 45 151 51 109 72 59 197 96 5 42 43 28 184 4 112 156 29 126 84 35 11 166 77 47 105 116 65 131 149 24 123 190 (back to start)
+153 0 170 143 117 93 140 36 68 46 198 139 115 96 5 42 43 77 118 109 51 137 23 94 124 148 62 49 178 106 185 40 145 78 44 120 2 152 97 1 101 75 86 26 100 53 158 154 70 127 194 135 180 136 121 63 122 79 133 162 45 151 80 176 72 59 116 105 65 47 131 149 123 48 54 30 177 10 190 4 112 84 35 184 160 34 181 41 193 159 146 22 199 18 69 108 186 114 89 183 153 (back to start)
 ```
 
 ![](M2_tspa.png)
 
-TSPB best cycle:
+Best found cycle (example, TSPB):
 ```
-9 183 174 83 181 95 130 99 22 179 57 172 52 185 86 166 194 88 113 26 103 114 137 127 165 89 163 186 187 146 97 77 50 58 82 87 21 8 171 157 104 56 33 138 182 139 43 126 195 168 11 49 39 29 109 35 0 12 160 144 68 111 37 41 14 81 153 129 180 176 64 110 128 106 119 159 143 124 62 18 55 34 170 152 53 140 199 4 149 101 28 59 20 23 60 148 47 154 94 66 9 (back to start)
+9 183 174 83 181 95 130 99 22 179 57 172 52 185 86 166 194 88 113 26 103 114 137 127 165 89 163 186 187 146 97 77 141 91 36 61 82 21 177 25 104 56 33 138 182 139 188 169 195 168 11 49 39 29 109 35 0 12 160 144 8 111 37 41 14 81 153 129 180 176 64 110 128 106 119 159 143 124 62 18 55 34 170 152 53 140 199 4 149 101 28 59 20 23 60 148 47 154 94 66 9 (back to start)
 ```
+
 ![](M2_tspb.png)
 
 ### M3
 
 #### Description
-Steepest-descent local search using 2-edge exchanges (2-opt). Starting from a random feasible solution, the method examines all possible 2-opt moves (remove two edges and reconnect to eliminate the crossing) and applies the single best improving 2-opt move (steepest descent). Repeat until no improving 2-opt exists.
-
-- Start: random feasible solution.
-- Neighbourhood: all 2-opt moves over the selected cycle (reverse subsequences between two indices).
-- Strategy: steepest descent — evaluate all candidate 2-opt moves, pick the one with largest decrease and apply it; repeat until local optimum.
+- Steepest-descent local search using 2-edge (2-opt) exchanges starting from a random feasible solution.
 
 #### Pseudocode
 ``` pseudocode
 startSolution <- random_permutation(nodes)
+currentCost <- evaluate(startSolution)
 improved <- true
 while improved:
   improved <- false
-  bestMove <- null
   bestDelta <- 0
-  for i in 0..len(startSolution)-2:
-    for j in i+1..len(startSolution)-1:
+  bestMove <- null
+
+  for i in 0..|startSolution|-2:
+    for j in i+1..|startSolution|-1:
+      reverse segment startSolution[i..j]
+      newCost <- evaluate(startSolution)
       delta <- newCost - currentCost
       if delta < bestDelta:
-        bestDelta <- delta
-        bestMove <- (i,j)
-  if bestMove != null:
-    reverse(solution.begin() + bestI, solution.begin() + bestJ + 1)
+        bestDelta <- delta; bestMove <- (type=2OPT,i,j)
+      reverse segment startSolution[i..j]
+
+  used <- boolean vector marking nodes in startSolution
+  for i in 0..|startSolution|-1:
+    old <- startSolution[i]
+    for newNode in 0..n-1:
+      if used[newNode] then continue
+      startSolution[i] <- newNode
+      newCost <- evaluate(startSolution)
+      delta <- newCost - currentCost
+      if delta < bestDelta:
+        bestDelta <- delta; bestMove <- (INTER_EXCHANGE,i,newNode)
+    startSolution[i] <- old
+
+  if bestDelta < 0:
+    apply bestMove (reverse or replace)
+    currentCost <- currentCost + bestDelta
     improved <- true
-return startSolution
 ```
 
 #### Results (summary)
 
-TSPA best cycle:
+| Instance | runs | avg (min – max) | Execution time |
+|---|---:|---:|---:|
+| TSPA | 200 | 73932.8 (70795 – 79370) | 414.305 s |
+| TSPB | 200 | 48209.6 (45521 – 51880) | 416.109 s |
+
+Best found cycle (example, TSPA):
 ```
-13 85 157 38 168 78 92 57 179 91 196 40 39 95 7 165 185 52 106 178 3 32 138 14 49 102 155 132 73 9 33 128 111 12 94 122 63 133 80 176 186 15 64 114 83 89 183 153 0 117 140 108 69 191 139 193 159 103 34 192 160 48 30 54 147 10 24 131 65 105 28 42 96 115 118 72 45 162 6 180 158 53 121 99 19 152 97 26 86 101 150 75 120 82 16 88 171 175 113 56 13 (back to start)
+157 31 56 113 175 171 16 44 120 25 78 145 179 57 92 129 2 75 86 101 1 152 97 26 100 53 158 180 154 135 70 127 123 112 4 190 10 177 54 184 160 34 146 22 159 193 41 181 42 5 43 65 116 115 46 68 139 18 108 140 93 117 0 170 143 183 89 23 137 176 80 51 59 162 151 133 79 122 63 94 124 148 9 62 102 144 14 49 3 178 106 52 55 185 40 119 165 90 81 196 157 (back to start)
 ```
 
 ![](M3_tspa.png)
 
-TSPB best cycle:
+Best found cycle (example, TSPB):
 ```
-197 1 24 42 30 117 151 173 164 193 190 162 45 78 5 177 91 141 97 77 81 186 163 89 103 75 76 180 176 88 194 166 22 172 57 94 154 60 23 59 149 4 140 183 152 170 55 18 62 128 106 129 119 14 50 87 21 8 68 144 160 33 139 29 12 37 35 109 69 189 184 3 70 145 13 168 188 6 150 192 147 134 85 74 25 121 131 125 90 178 10 133 72 17 107 40 100 122 102 27 197 (back to start)
+141 61 36 177 5 45 142 78 175 80 190 136 73 54 31 193 117 198 1 16 27 38 135 63 100 40 107 133 122 90 121 51 147 6 188 169 132 13 70 3 15 145 168 139 11 182 138 33 160 144 104 8 21 82 111 29 0 109 35 143 106 124 128 62 18 55 34 183 140 4 149 28 59 20 60 148 47 94 66 57 172 179 22 99 95 185 86 166 194 88 176 180 113 103 89 163 153 81 77 97 141 (back to start)
 ```
+
 ![](M3_tspb.png)
 
 ### M4
 
 #### Description
-Steepest-descent local search using 2-edge exchanges (2-opt), started from a greedy constructed feasible solution. The greedy start uses best-insertion with a random start node. From that initial tour the algorithm applies steepest-descent 2-opt moves until no improvement remains.
-
-- Start: greedy feasible solution (best-insertion with random start node).
-- Neighbourhood: all 2-opt moves over the selected cycle.
-- Strategy: steepest descent — evaluate all candidate 2-opt moves, pick the best improving one and apply it; repeat until local optimum.
+- Steepest-descent local search using 2-edge (2-opt) exchanges starting from a greedy feasible solution.
 
 #### Pseudocode
 ``` pseudocode
-startNode <- random_choice(nodes)
-startSolution <- construct_greedy_insertion(startNode)
+startSolution <- construct_greedy_insertion(random_start_node)
+currentCost <- evaluate(startSolution)
 improved <- true
 while improved:
   improved <- false
-  bestMove <- null
   bestDelta <- 0
-  for i in 0..len(startSolution)-2:
-    for j in i+1..len(startSolution)-1:
+  bestMove <- null
+
+  for i in 0..|startSolution|-2:
+    for j in i+1..|startSolution|-1:
+      reverse startSolution[i..j]
+      newCost <- evaluate(startSolution)
       delta <- newCost - currentCost
       if delta < bestDelta:
-        bestDelta <- delta
-        bestMove <- (i,j)
-  if bestMove != null:
-    reverse(solution.begin() + bestI, solution.begin() + bestJ + 1)
+        bestDelta <- delta; bestMove <- (2OPT,i,j)
+      reverse startSolution[i..j]
+
+  used <- boolean vector marking nodes in startSolution
+  for i in 0..|startSolution|-1:
+    old <- startSolution[i]
+    for newNode in 0..n-1:
+      if used[newNode] then continue
+      startSolution[i] <- newNode
+      newCost <- evaluate(startSolution)
+      delta <- newCost - currentCost
+      if delta < bestDelta:
+        bestDelta <- delta; bestMove <- (INTER_EXCHANGE,i,newNode)
+    startSolution[i] <- old
+
+  if bestDelta < 0:
+    apply bestMove
+    currentCost <- currentCost + bestDelta
     improved <- true
-return startSolution
 ```
 
 #### Results (summary)
 
-TSPA best cycle:
+| Instance | runs | avg (min – max) | Execution time |
+|---|---:|---:|---:|
+| TSPA | 200 | 93879.3 (86202 – 99484) | 177.373 s |
+| TSPB | 200 | 59034.7 (57620 – 61810) | 124.25 s |
+
+Best found cycle (example, TSPA):
 ```
-48 30 54 147 104 177 10 190 84 4 112 126 156 29 123 24 149 131 65 116 105 47 77 166 35 11 184 28 43 42 5 96 197 59 72 51 151 45 162 161 133 79 63 182 136 180 173 194 135 70 6 154 158 53 86 75 150 101 1 2 87 125 74 152 97 26 100 121 99 189 19 124 12 130 94 122 80 176 66 141 109 118 115 46 198 139 191 110 142 41 193 159 22 146 103 195 181 192 160 34 48 (back to start)
+153 0 170 143 117 93 140 36 108 69 18 199 22 146 181 34 160 48 54 177 10 190 4 112 84 184 35 123 24 149 131 47 65 116 105 43 42 5 96 41 193 159 139 68 46 198 115 197 59 118 109 51 72 151 45 162 133 79 122 63 136 180 135 194 127 70 6 154 158 53 121 100 26 86 75 101 1 97 152 2 120 44 78 145 185 106 178 49 62 148 124 94 80 176 66 137 23 186 89 183 153 (back to start)
 ```
 
 ![](M4_tspa.png)
 
-TSPB best cycle:
+Best found cycle (example, TSPB):
 ```
-130 95 181 83 174 53 152 170 34 55 18 62 124 143 159 119 106 128 110 64 176 180 129 153 81 14 41 37 111 68 144 160 39 12 0 35 109 29 49 11 168 195 126 43 139 182 138 33 56 104 157 171 8 21 87 82 58 50 77 97 146 187 186 163 89 165 127 137 114 103 26 113 88 194 166 86 185 99 22 179 52 172 57 66 94 154 47 148 60 23 20 59 28 101 149 4 140 183 199 9 130 (back to start)
+25 104 56 8 111 82 87 21 36 141 97 77 81 153 106 124 62 18 55 34 143 35 109 0 29 144 160 33 49 11 138 182 139 43 168 195 126 13 145 15 3 70 161 132 169 65 188 6 150 192 147 85 134 2 74 118 98 51 120 67 71 191 90 133 122 135 131 121 112 19 151 198 24 1 197 16 38 27 42 156 30 117 193 31 54 164 73 173 136 105 190 80 46 162 175 78 142 45 5 177 25 (back to start)
 ```
+
 ![](M4_tspb.png)
 
 ### M5
@@ -410,28 +488,14 @@ Best found cycle (example, TSPB):
 ```
 ![](M8_tspb.png)
 
-### Conclusions
+## Conclusions
 
-This assignment implemented and compared several local-search strategies (2-node swap and 2-edge / 2-opt), each tested with two different starts: random and greedy insertion. The main conclusions from the experiments are:
-
-- Greedy construction as a start point consistently improves final solution quality and reduces variance compared with random starts. Among the methods tested, the steepest-descent 2-edge exchange with greedy start (M4) gave the best average results on both instances.
-- 2-edge exchanges (2-opt) are more powerful than simple 2-node swaps for this problem: they find shorter cycles and improve the objective more effectively, at the cost of slightly higher per-move evaluation in the random-start case.
-- Running time trade-offs: random starts (M1, M3) require significantly more time because searches start from poor-quality solutions and perform more improving moves; greedy starts converge faster.
-
-### Implementation insights
-
-- Use cycle-aware insertion/evaluation throughout (wrap-around predecessor/successor) to simplify move evaluation and avoid special-case code when closing the tour.
-- When searching for the two best insertion costs (for regret-based heuristics) scanning for the two smallest values in one pass is faster than sorting all positions.
-- For local search, implementing efficient delta evaluations for 2-opt and 2-node swap moves reduces runtime substantially compared to recomputing full tour costs after each candidate move.
+This assignment explored greedy regret-based heuristics for the TSP with node selection, comparing standard 2-regret against a weighted variant that combines regret with greedy objective minimization.
 
 ---
 
 ### Outcomes were checked with the solution checker
 
-All methods were executed via `./main` and results recorded; the `out.txt` file contains the full program output used to populate the tables and example best routes.
-
 ### Link to the source code (Github repository - directory Assignment 3)
 
 [Assignment 3](https://github.com/Strajkerr/EvolutionaryComputing/tree/main/Assignment_3)
----
-

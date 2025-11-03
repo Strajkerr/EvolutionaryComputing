@@ -289,6 +289,9 @@ void M1_steepestDescent_TwoNodeExchange_RandomStart(int **distanceMatrix, std::v
     for (int run = 0; run < totalRuns; ++run)
     {
         std::vector<int> solution = randomPermutation(size, g);
+        int solSize = static_cast<int>(solution.size());
+        if (solSize <= 0) continue;
+
         int currentCost = evaluateSolution(solution, distanceMatrix, costVector);
 
         bool improved = true;
@@ -296,10 +299,14 @@ void M1_steepestDescent_TwoNodeExchange_RandomStart(int **distanceMatrix, std::v
         {
             improved = false;
             int bestDelta = 0;
-            int bestI = -1;
-            int bestJ = -1;
 
-            int solSize = static_cast<int>(solution.size());
+            // Best move storage
+            int bestMoveType = 0;   // 0=none, 1=intra-swap, 2=inter-exchange
+            int bestI = -1;
+            int bestJ = -1;         // For intra-swap
+            int bestNewNode = -1;   // For inter-exchange
+
+            solSize = static_cast<int>(solution.size()); // Re-check size
             for (int i = 0; i < solSize - 1; ++i)
             {
                 for (int j = i + 1; j < solSize; ++j)
@@ -310,20 +317,53 @@ void M1_steepestDescent_TwoNodeExchange_RandomStart(int **distanceMatrix, std::v
                     if (delta < bestDelta)
                     {
                         bestDelta = delta;
+                        bestMoveType = 1;
                         bestI = i;
                         bestJ = j;
                     }
-                    std::swap(solution[i], solution[j]);
+                    std::swap(solution[i], solution[j]); // Swap back
                 }
+            }
+
+            std::vector<char> used(size, 0);
+            for (int v : solution) used[v] = 1;
+
+            for (int i = 0; i < solSize; ++i) // For each node in solution
+            {
+                int oldNode = solution[i];
+                for (int newNode = 0; newNode < size; ++newNode) // For each node not in solution
+                {
+                    if (used[newNode]) continue;
+
+                    solution[i] = newNode;
+                    int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                    int delta = newCost - currentCost;
+
+                    if (delta < bestDelta)
+                    {
+                        bestDelta = delta;
+                        bestMoveType = 2;
+                        bestI = i; // position to swap
+                        bestNewNode = newNode; // node to swap in
+                    }
+                }
+                solution[i] = oldNode; // Swap back
             }
 
             if (bestDelta < 0)
             {
-                std::swap(solution[bestI], solution[bestJ]);
+                if (bestMoveType == 1) // Intra-route swap
+                {
+                    std::swap(solution[bestI], solution[bestJ]);
+                }
+                else if (bestMoveType == 2) // Inter-route exchange
+                {
+                    solution[bestI] = bestNewNode;
+                }
                 currentCost += bestDelta;
                 improved = true;
             }
-        }
+        } // end while(improved)
 
         totalSum += currentCost;
         if (currentCost < bestObjective)
@@ -375,17 +415,23 @@ void M2_steepestDescent_TwoNodeExchange_GreedyStart(int **distanceMatrix, std::v
     {
         int startNode = startDist(g);
         std::vector<int> solution = constructGreedyInsertion(distanceMatrix, costVector, size, startNode);
-
+        int solSize = static_cast<int>(solution.size());
+        if (solSize <= 0) continue;
+        
         int currentCost = evaluateSolution(solution, distanceMatrix, costVector);
         bool improved = true;
         while(improved)
         {
             improved = false;
             int bestDelta = 0;
-            int bestI = -1;
-            int bestJ = -1;
 
-            int solSize = static_cast<int>(solution.size());
+            int bestMoveType = 0;   // 0=none, 1=intra-swap, 2=inter-exchange
+            int bestI = -1;
+            int bestJ = -1;         // For intra-swap
+            int bestNewNode = -1;   // For inter-exchange
+
+            // --- Neighborhood 1: Intra-route node swap ---
+            solSize = static_cast<int>(solution.size());
             for (int i = 0; i < solSize - 1; ++i)
             {
                 for (int j = i + 1; j < solSize; ++j)
@@ -396,20 +442,53 @@ void M2_steepestDescent_TwoNodeExchange_GreedyStart(int **distanceMatrix, std::v
                     if (delta < bestDelta)
                     {
                         bestDelta = delta;
+                        bestMoveType = 1;
                         bestI = i;
                         bestJ = j;
                     }
-                    std::swap(solution[i], solution[j]);
+                    std::swap(solution[i], solution[j]); // Swap back
                 }
+            }
+
+            std::vector<char> used(size, 0);
+            for (int v : solution) used[v] = 1;
+
+            for (int i = 0; i < solSize; ++i) // For each node in solution
+            {
+                int oldNode = solution[i];
+                for (int newNode = 0; newNode < size; ++newNode) // For each node not in solution
+                {
+                    if (used[newNode]) continue;
+
+                    solution[i] = newNode;
+                    int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                    int delta = newCost - currentCost;
+
+                    if (delta < bestDelta)
+                    {
+                        bestDelta = delta;
+                        bestMoveType = 2;
+                        bestI = i; // position to swap
+                        bestNewNode = newNode; // node to swap in
+                    }
+                }
+                solution[i] = oldNode; // Swap back
             }
 
             if (bestDelta < 0)
             {
-                std::swap(solution[bestI], solution[bestJ]);
+                if (bestMoveType == 1) // Intra-route swap
+                {
+                    std::swap(solution[bestI], solution[bestJ]);
+                }
+                else if (bestMoveType == 2) // Inter-route exchange
+                {
+                    solution[bestI] = bestNewNode;
+                }
                 currentCost += bestDelta;
                 improved = true;
             }
-        }
+        } // end while(improved)
 
         totalSum += currentCost;
         if (currentCost < bestObjective)
@@ -459,6 +538,8 @@ void M3_steepestDescent_TwoEdgeExchange_RandomStart(int **distanceMatrix, std::v
     for (int run = 0; run < totalRuns; ++run)
     {
         std::vector<int> solution = randomPermutation(size, g);
+        int solSize = static_cast<int>(solution.size());
+        if (solSize <= 0) continue;
 
         int currentCost = evaluateSolution(solution, distanceMatrix, costVector);
 
@@ -467,34 +548,71 @@ void M3_steepestDescent_TwoEdgeExchange_RandomStart(int **distanceMatrix, std::v
         {
             improved = false;
             int bestDelta = 0;
-            int bestI = -1;
-            int bestJ = -1;
 
-            int solSize = static_cast<int>(solution.size());
+            // Best move storage
+            int bestMoveType = 0;   // 0=none, 1=intra-2-opt, 2=inter-exchange
+            int bestI = -1;
+            int bestJ = -1;         // For 2-opt
+            int bestNewNode = -1;   // For inter-exchange
+
+            solSize = static_cast<int>(solution.size());
             for (int i = 0; i < solSize - 1; ++i)
             {
                 for (int j = i + 1; j < solSize; ++j)
                 {
-                    std::reverse(solution.begin() + i, solution.begin() + j + 1);
+                    std::reverse(solution.begin() + i, solution.begin() + j + 1); // Reverse segment [i, j]
                     int newCost = evaluateSolution(solution, distanceMatrix, costVector);
                     int delta = newCost - currentCost;
                     if (delta < bestDelta)
                     {
                         bestDelta = delta;
+                        bestMoveType = 1;
                         bestI = i;
                         bestJ = j;
                     }
-                    std::reverse(solution.begin() + i, solution.begin() + j + 1);
+                    std::reverse(solution.begin() + i, solution.begin() + j + 1); // Swap back
                 }
+            }
+
+            std::vector<char> used(size, 0);
+            for (int v : solution) used[v] = 1;
+
+            for (int i = 0; i < solSize; ++i) // For each node in solution
+            {
+                int oldNode = solution[i];
+                for (int newNode = 0; newNode < size; ++newNode) // For each node not in solution
+                {
+                    if (used[newNode]) continue;
+
+                    solution[i] = newNode;
+                    int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                    int delta = newCost - currentCost;
+
+                    if (delta < bestDelta)
+                    {
+                        bestDelta = delta;
+                        bestMoveType = 2;
+                        bestI = i; // position to swap
+                        bestNewNode = newNode; // node to swap in
+                    }
+                }
+                solution[i] = oldNode; // Swap back
             }
 
             if (bestDelta < 0)
             {
-                std::reverse(solution.begin() + bestI, solution.begin() + bestJ + 1);
+                if (bestMoveType == 1) // Intra-route 2-opt
+                {
+                    std::reverse(solution.begin() + bestI, solution.begin() + bestJ + 1);
+                }
+                else if (bestMoveType == 2) // Inter-route exchange
+                {
+                    solution[bestI] = bestNewNode;
+                }
                 currentCost += bestDelta;
                 improved = true;
             }
-        }
+        } // end while(improved)
 
         totalSum += currentCost;
         if (currentCost < bestObjective)
@@ -538,15 +656,18 @@ void M4_steepestDescent_TwoEdgeExchange_GreedyStart(int **distanceMatrix, std::v
     long long totalSum = 0;
     int bestObjective = std::numeric_limits<int>::max();
     int worstObjective = std::numeric_limits<int>::min();
-    std::uniform_int_distribution<int> startDist(0, size - 1);
-
     std::vector<int> bestSolution;
     auto startTime = std::chrono::high_resolution_clock::now();
-    for (int run = 0; run < totalRuns; ++run)
+
+    std::uniform_int_distribution<int> startDist(0, size - 1);
+
+    for (int run = 0; run < totalRuns; run++)
     {
         int startNode = startDist(g);
         std::vector<int> solution = constructGreedyInsertion(distanceMatrix, costVector, size, startNode);
-
+        int solSize = static_cast<int>(solution.size());
+        if (solSize <= 0) continue;
+        
         int currentCost = evaluateSolution(solution, distanceMatrix, costVector);
 
         bool improved = true;
@@ -554,34 +675,72 @@ void M4_steepestDescent_TwoEdgeExchange_GreedyStart(int **distanceMatrix, std::v
         {
             improved = false;
             int bestDelta = 0;
-            int bestI = -1;
-            int bestJ = -1;
 
-            int solSize = static_cast<int>(solution.size());
+            // Best move storage
+            int bestMoveType = 0;   // 0=none, 1=intra-2-opt, 2=inter-exchange
+            int bestI = -1;
+            int bestJ = -1;         // For 2-opt
+            int bestNewNode = -1;   // For inter-exchange
+
+            // --- Neighborhood 1: Intra-route 2-edge exchange (2-opt) ---
+            solSize = static_cast<int>(solution.size());
             for (int i = 0; i < solSize - 1; ++i)
             {
                 for (int j = i + 1; j < solSize; ++j)
                 {
-                    std::reverse(solution.begin() + i, solution.begin() + j + 1);
+                    std::reverse(solution.begin() + i, solution.begin() + j + 1); // Reverse segment [i, j]
                     int newCost = evaluateSolution(solution, distanceMatrix, costVector);
                     int delta = newCost - currentCost;
                     if (delta < bestDelta)
                     {
                         bestDelta = delta;
+                        bestMoveType = 1;
                         bestI = i;
                         bestJ = j;
                     }
-                    std::reverse(solution.begin() + i, solution.begin() + j + 1);
+                    std::reverse(solution.begin() + i, solution.begin() + j + 1); // Swap back
                 }
+            }
+
+            std::vector<char> used(size, 0);
+            for (int v : solution) used[v] = 1;
+
+            for (int i = 0; i < solSize; ++i) // For each node in solution
+            {
+                int oldNode = solution[i];
+                for (int newNode = 0; newNode < size; ++newNode) // For each node not in solution
+                {
+                    if (used[newNode]) continue;
+
+                    solution[i] = newNode;
+                    int newCost = evaluateSolution(solution, distanceMatrix, costVector);
+                    int delta = newCost - currentCost;
+
+                    if (delta < bestDelta)
+                    {
+                        bestDelta = delta;
+                        bestMoveType = 2;
+                        bestI = i; // position to swap
+                        bestNewNode = newNode; // node to swap in
+                    }
+                }
+                solution[i] = oldNode; // Swap back
             }
 
             if (bestDelta < 0)
             {
-                std::reverse(solution.begin() + bestI, solution.begin() + bestJ + 1);
+                if (bestMoveType == 1) // Intra-route 2-opt
+                {
+                    std::reverse(solution.begin() + bestI, solution.begin() + bestJ + 1);
+                }
+                else if (bestMoveType == 2) // Inter-route exchange
+                {
+                    solution[bestI] = bestNewNode;
+                }
                 currentCost += bestDelta;
                 improved = true;
             }
-        }
+        } // end while(improved)
 
         totalSum += currentCost;
         if (currentCost < bestObjective)
