@@ -66,11 +66,10 @@ for run = 1 to 20:
 
 #### Visualizations
 
-![MSLS Best Solution - TSPA](msls_tspa.png)
-*Figure 1: MSLS best solution for TSPA instance (cost: 72344). Nodes are colored by cost (white to pink), with darker shades indicating higher costs. Black lines show the Hamiltonian cycle connecting selected nodes.*
+![MSLS Best Solution - TSPA](../msls_tspa.png)
 
-![MSLS Best Solution - TSPB](msls_tspb.png)
-*Figure 2: MSLS best solution for TSPB instance (cost: 47766). The visualization shows the optimal node selection and path found by MSLS.*
+![MSLS Best Solution - TSPB](../msls_tspb.png)
+
 
 ---
 
@@ -171,11 +170,11 @@ The perturbation strategy was designed with the following considerations:
 
 #### Visualizations
 
-![ILS Best Solution - TSPA](ils_tspa.png)
-*Figure 3: ILS best solution for TSPA instance (cost: 71906). This solution is 438 units better than MSLS (0.6% improvement), demonstrating ILS's ability to escape local optima through perturbation.*
+![ILS Best Solution - TSPA](../ils_tspa.png)
 
-![ILS Best Solution - TSPB](ils_tspb.png)
-*Figure 4: ILS best solution for TSPB instance (cost: 45809). This solution is 1957 units better than MSLS (4.1% improvement), showing significant quality gains from the perturbation mechanism.*
+
+![ILS Best Solution - TSPB]../(ils_tspb.png)
+
 
 ---
 
