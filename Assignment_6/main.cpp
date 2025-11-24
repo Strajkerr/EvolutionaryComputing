@@ -393,6 +393,237 @@ void M_Steepest_LM_RandomStart(
     std::cout << "\n";
 }
 
+// Perturbation function: Destroys and rebuilds part of the solution
+std::vector<int> perturbSolution(
+    const std::vector<int> &solution,
+    int **distanceMatrix,
+    const std::vector<int> &costVector,
+    int totalNodes,
+    std::mt19937 &g,
+    double destructionRatio = 0.3)
+{
+    int n = solution.size();
+    int numToRemove = std::max(2, static_cast<int>(n * destructionRatio));
+    
+    std::vector<int> perturbed = solution;
+    std::vector<int> pos(totalNodes, -1);
+    for(int i=0; i<n; ++i) pos[perturbed[i]] = i;
+    
+    // Remove random nodes
+    std::vector<int> removed;
+    std::uniform_int_distribution<int> indexDist(0, perturbed.size() - 1);
+    
+    for (int i = 0; i < numToRemove; ++i) {
+        int idx = indexDist(g);
+        removed.push_back(perturbed[idx]);
+        pos[perturbed[idx]] = -1;
+        perturbed.erase(perturbed.begin() + idx);
+        if (!perturbed.empty() && indexDist.param().b() >= (int)perturbed.size()) {
+            indexDist = std::uniform_int_distribution<int>(0, perturbed.size() - 1);
+        }
+    }
+    
+    // Update positions
+    for(int i=0; i<(int)perturbed.size(); ++i) pos[perturbed[i]] = i;
+    
+    // Greedy reinsert: find best position for each removed node
+    for (int node : removed) {
+        int bestPos = 0;
+        int bestCost = std::numeric_limits<int>::max();
+        
+        for (int p = 0; p <= (int)perturbed.size(); ++p) {
+            perturbed.insert(perturbed.begin() + p, node);
+            int costValue = evaluateSolution(perturbed, distanceMatrix, costVector);
+            if (costValue < bestCost) {
+                bestCost = costValue;
+                bestPos = p;
+            }
+            perturbed.erase(perturbed.begin() + p);
+        }
+        perturbed.insert(perturbed.begin() + bestPos, node);
+    }
+    
+    return perturbed;
+}
+
+void ILS_Steepest_LM(
+    int **distanceMatrix,
+    std::vector<int> &costVector,
+    int size,
+    int totalRuns = 20,
+    double timeLimitPerRun = 0.0)
+{
+    if (size <= 0) return;
+    std::random_device rd;
+    std::mt19937 g(rd());
+
+    long long totalSum = 0;
+    int bestObjective = std::numeric_limits<int>::max();
+    int worstObjective = std::numeric_limits<int>::min();
+    std::vector<int> bestSolution;
+    
+    int totalLSRuns = 0;
+    std::vector<int> lsRunsPerExperiment;
+    
+    auto globalStartTime = std::chrono::high_resolution_clock::now();
+
+    // Lambda to apply local search
+    auto applyLS = [&](std::vector<int> &sol, int &lsCounter) {
+        lsCounter++;
+        int n = sol.size();
+        std::vector<int> pos(size, -1);
+        for(int i=0; i<n; ++i) pos[sol[i]] = i;
+
+        std::vector<Move> LM;
+        LM.reserve(n * n); 
+        generateMoves(distanceMatrix, costVector, sol, pos, LM, true, size);
+        std::sort(LM.begin(), LM.end(), compareMoves);
+
+        bool localOptimum = false;
+
+        while (!localOptimum && !LM.empty())
+        {
+            bool moveApplied = false;
+            auto it = LM.begin();
+            while (it != LM.end())
+            {
+                Move m = *it;
+                
+                if (m.type == 1) {
+                    int e1 = checkEdge(m.u, m.u_next, sol, pos);
+                    int e2 = checkEdge(m.v, m.v_next, sol, pos);
+
+                    if (e1 == 0 || e2 == 0) { it = LM.erase(it); continue; }
+                    if (e1 != e2) { ++it; continue; }
+
+                    moveApplied = true;
+                    int p1, p2;
+                    if (e1 == 1) { p1 = pos[m.u_next]; p2 = pos[m.v]; }
+                    else { p1 = pos[m.u]; p2 = pos[m.v_next]; }
+
+                    reverseCircularSegment(sol, p1, p2);
+                    for(int k=0; k<n; ++k) pos[sol[k]] = k;
+                    it = LM.erase(it);
+                    
+                    std::vector<int> changed = {m.u, m.u_next, m.v, m.v_next};
+                    std::vector<Move> newMoves;
+                    generateMoves(distanceMatrix, costVector, sol, pos, newMoves, false, size, changed);
+                    std::sort(newMoves.begin(), newMoves.end(), compareMoves);
+                    size_t oldSize = LM.size();
+                    LM.insert(LM.end(), newMoves.begin(), newMoves.end());
+                    std::inplace_merge(LM.begin(), LM.begin() + oldSize, LM.end(), compareMoves);
+                    break; 
+                }
+                else if (m.type == 2) {
+                    int u_idx = pos[m.u];
+                    int v_idx = pos[m.v];
+
+                    if (u_idx == -1) { it = LM.erase(it); continue; }
+                    if (v_idx != -1) { it = LM.erase(it); continue; }
+
+                    int u_prev = sol[(u_idx - 1 + n) % n];
+                    int u_next = sol[(u_idx + 1) % n];
+                    
+                    int current_delta = (dist(u_prev, m.v) + dist(m.v, u_next) + cost(m.v)) 
+                                      - (dist(u_prev, m.u) + dist(m.u, u_next) + cost(m.u));
+                    
+                    if (current_delta >= 0) {
+                        it = LM.erase(it);
+                        continue;
+                    }
+
+                    moveApplied = true;
+                    sol[u_idx] = m.v;
+                    pos[m.u] = -1;
+                    pos[m.v] = u_idx;
+
+                    it = LM.erase(it);
+
+                    std::vector<int> changed = {m.v, u_prev, u_next, m.u};
+                    std::vector<Move> newMoves;
+                    generateMoves(distanceMatrix, costVector, sol, pos, newMoves, false, size, changed);
+                    std::sort(newMoves.begin(), newMoves.end(), compareMoves);
+                    size_t oldSize = LM.size();
+                    LM.insert(LM.end(), newMoves.begin(), newMoves.end());
+                    std::inplace_merge(LM.begin(), LM.begin() + oldSize, LM.end(), compareMoves);
+                    break;
+                }
+            }
+            if (!moveApplied) localOptimum = true;
+        }
+    };
+
+    for (int run = 0; run < totalRuns; ++run)
+    {
+        int runLSCount = 0;
+        auto runStartTime = std::chrono::high_resolution_clock::now();
+        
+        // Initial random solution + LS
+        std::vector<int> currentSolution = randomPermutation(size, g);
+        applyLS(currentSolution, runLSCount);
+        int currentCost = evaluateSolution(currentSolution, distanceMatrix, costVector);
+        int runBestCost = currentCost;
+        std::vector<int> runBestSolution = currentSolution;
+        
+        // ILS loop
+        while (true) {
+            auto currentTime = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed = currentTime - runStartTime;
+            if (timeLimitPerRun > 0 && elapsed.count() >= timeLimitPerRun) break;
+            
+            // Perturb
+            std::vector<int> perturbedSolution = perturbSolution(
+                currentSolution, distanceMatrix, costVector, size, g, 0.3);
+            
+            // Apply LS
+            applyLS(perturbedSolution, runLSCount);
+            int perturbedCost = evaluateSolution(perturbedSolution, distanceMatrix, costVector);
+            
+            // Acceptance criterion: accept if better or equal (to allow exploration)
+            if (perturbedCost <= currentCost) {
+                currentSolution = perturbedSolution;
+                currentCost = perturbedCost;
+                
+                if (currentCost < runBestCost) {
+                    runBestCost = currentCost;
+                    runBestSolution = currentSolution;
+                }
+            }
+        }
+        
+        lsRunsPerExperiment.push_back(runLSCount);
+        totalLSRuns += runLSCount;
+        totalSum += runBestCost;
+        if (runBestCost < bestObjective) {
+            bestObjective = runBestCost;
+            bestSolution = runBestSolution;
+        }
+        if (runBestCost > worstObjective) worstObjective = runBestCost;
+    }
+
+    auto endTime = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = endTime - globalStartTime;
+    
+    std::cout << "====== ILS (Iterated Local Search) ======\n";
+    std::cout << "  runs = " << totalRuns << "\n";
+    std::cout << "  min = " << bestObjective << "\n";
+    std::cout << "  max = " << worstObjective << "\n";
+    std::cout << "  avg = " << (double)totalSum / totalRuns << "\n";
+    std::cout << "Execution time: " << elapsed.count() << " s\n";
+    std::cout << "Average time per run: " << elapsed.count() / totalRuns << " s\n";
+    std::cout << "Total LS runs: " << totalLSRuns << "\n";
+    std::cout << "Average LS runs per experiment: " << (double)totalLSRuns / totalRuns << "\n";
+    std::cout << "\nLS runs per experiment: ";
+    for (int count : lsRunsPerExperiment) {
+        std::cout << count << " ";
+    }
+    std::cout << "\n\nBest solution: ";
+    for (auto node : bestSolution) {
+        std::cout << node << " ";
+    }
+    std::cout << "\n";
+}
+
 int main()
 {
     std::vector<std::string> fileNames = {"../TSPA.csv", "../TSPB.csv"};
@@ -405,7 +636,21 @@ int main()
         int **distanceMatrix = getDistanceMatrix(data, size);
         std::vector<int> costVector = getCostVector(data);
 
-        M_Steepest_LM_RandomStart(distanceMatrix, costVector, size);
+        std::cout << "\n========================================\n";
+        std::cout << "Processing: " << FILE_NAME << "\n";
+        std::cout << "========================================\n\n";
+
+        // Run MSLS first to get average time
+        auto mslsStart = std::chrono::high_resolution_clock::now();
+        M_Steepest_LM_RandomStart(distanceMatrix, costVector, size, 20);
+        auto mslsEnd = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> mslsTime = mslsEnd - mslsStart;
+        double avgTimePerRun = mslsTime.count() / 20.0;
+
+        std::cout << "\n";
+        
+        // Run ILS with time limit based on MSLS
+        ILS_Steepest_LM(distanceMatrix, costVector, size, 20, avgTimePerRun);
 
         for (int i = 0; i < size; i++) delete[] distanceMatrix[i];
         delete[] distanceMatrix;
