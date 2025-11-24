@@ -238,11 +238,10 @@ The perturbation strategy was designed with the following considerations:
 
 #### Visualizations
 
-![ILS Best Solution - TSPA](ils_tspa.png)
-*Figure 3: ILS best solution for TSPA instance (cost: 71906)*
+![ILS Best Solution - TSPA](../ils_tspa.png)
 
-![ILS Best Solution - TSPB](ils_tspb.png)
-*Figure 4: ILS best solution for TSPB instance (cost: 45809)*
+
+![ILS Best Solution - TSPB](../ils_tspb.png)
 
 
 ---
