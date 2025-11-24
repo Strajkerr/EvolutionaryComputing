@@ -16,27 +16,128 @@ The distances between nodes are calculated as Euclidean distances rounded mathem
 ---
 
 ## Methods
+### Comparison table
 
+### Objective function (avg (min – max))
+
+| Method | Instance 1 (TSPA) | Instance 2 (TSPB) |
+|---|---:|---:| 
+| Random solution | 263102 (231391 – 292542) | 212245 (194822 – 234932) |
+| Nearest neighbour (append only) | 83234.5 (81598 – 88112) | 52662 (51037 – 56570) |
+| Nearest neighbour (insertion at best position) | 71071.2 (69941 – 73650) | 44649.9 (43163 – 51497) |
+| Greedy (fully greedy insertion) | 72694.4 (70285 – 76228) | 50345.1 (46166 – 58032) |
+| Greedy 2‑regret | 72370.8 (68080 – 77702) | 114825 (105864 – 123334) |
+| Greedy 2‑regret weighted (α=0.5) | 50842.2 (47367 – 54016) | 72096.1 (71062 – 73532) |
+| M1 — Steepest descent, 2-node exchange (random start) | 88008.9 (80261 – 97609) | 62910.1 (56293 – 69558) |
+| M2 — Steepest descent, 2-node exchange (greedy start) | 94771.5 (87362 – 101867) | 60280.5 (59303 – 63062) |
+| M3 — Steepest descent, 2-edge (random start) | 73932.8 (70795 – 79370) | 48209.6 (45521 – 51880) |
+| M4 — Steepest descent, 2-edge (greedy start) | 93879.3 (86202 – 99484) | 59034.7 (57620 – 61810) |
+| M5 — Greedy first‑improvement, 2-node exchange (random start) | 85731 (78963 – 92428) | 60899.2 (54007 – 68549) |
+| M6 — Greedy first‑improvement, 2-node exchange (greedy start) | 91366.9 (84058 – 100296) | 60717.1 (56993 – 64953) |
+| M7 — Greedy first‑improvement, 2-edge (random start) | 73148.5 (71193 – 76253) | 47868.2 (45039 – 51839) |
+| M8 — Greedy first‑improvement, 2-edge (greedy start) | 88224.8 (79665 – 98684) | 58988.7 (55836 – 62679) |
+| Candidate List Steepest descent | 77528.3 (73143 - 84209) | 48340.6 (45340 - 51885) |
+| List of moves Steepest descent | 74444.5 (70453 - 79976) | 49121.1 (45898 - 52188) |
+| MSLS | 72300.6 (71302 – 73466) | 46875.1 (45309 – 47897) |
 ### MSLS (Multiple Start Local Search)
 
+#### Pseudocode
 
+```
+BestGlobalSolution <- NULL
+BestGlobalCost <- INFINITY
+
+// --- 1. The Multi-Start Loop ---
+For Iteration from 1 to 20:
+
+    // A. Initialize a random starting point
+    Solution <- GenerateRandomSolution()
+    Calculate initial Cost of Solution
+    
+    // Generate initial Move List (LM) for this solution
+    LM <- GenerateAllValidMoves(Solution)
+    Sort LM by Delta (Improvement)
+
+    LocalOptimum <- False
+
+    // --- 2. Local Search Loop (Steepest Descent) ---
+    While LocalOptimum is False:
+    
+        MoveApplied <- False
+
+        // Iterate through the list (Lazy Evaluation)
+        For each move m in LM:
+
+            // --- A. Validity Check ---
+            If m.Type is 2-Opt:
+                Edge1 <- Check if edge (m.u, m.u_next) exists in Solution
+                Edge2 <- Check if edge (m.v, m.v_next) exists in Solution
+
+                If Edge1 is Broken OR Edge2 is Broken:
+                    Remove m from LM, Continue
+                If Edge1 direction != Edge2 direction (Mismatch):
+                    Skip m (leave in LM), Continue
+
+            Else If m.Type is Exchange:
+                If m.u is not in Solution OR m.v is in Solution:
+                    Remove m from LM, Continue
+                CurrentDelta <- Re-calculate delta (neighbors might have changed)
+                If CurrentDelta >= 0:
+                    Remove m from LM, Continue
+
+            // --- B. Apply Move ---
+            Apply move m to Solution (Reverse segment OR Swap nodes)
+            Update Pos array
+            Remove m from LM
+            MoveApplied <- True
+
+            // --- C. Incremental Update ---
+            ChangedNodes <- List of nodes involved in move and their immediate neighbors
+            NewMoves <- Empty List
+
+            For each node k in ChangedNodes:
+                Generate all valid 2-Opt and Exchange moves involving k
+                If move improves: Add to NewMoves
+
+            Merge NewMoves into LM
+            Sort LM by Delta
+
+            // Restart scan from top of list (Steepest Descent requirement)
+            Break // Breaks the "For each move" loop to restart at "While LocalOptimum"
+        
+        If MoveApplied is False:
+            LocalOptimum <- True
+
+    // --- 3. Update Global Best ---
+    CurrentCost <- CalculateCost(Solution)
+    If CurrentCost < BestGlobalCost:
+        BestGlobalCost <- CurrentCost
+        BestGlobalSolution <- Clone(Solution)
+
+// Final Result
+Return BestGlobalSolution
+```
 
 #### Results
 
-| Instance | Runs | Avg (Min – Max) | Execution Time |
-|---|---:|---:|---:|
-| TSPA | 20 | 74286.3 (72344 – 76059) | 1.31 s |
-| TSPB | 20 | 49000.7 (47766 – 51437) | 1.34 s |
+| Instance | Avg (Min – Max) |
+|---|---:|
+| TSPA | 72300.6 (71302 – 73466) |
+| TSPB | 46875.1 (45309 – 47897) |
 
-**Best solution TSPA (cost: 72344):**
+**Best solution TSPA (cost: 71302):**
 ```
 43 42 5 96 115 118 59 72 151 109 51 66 137 176 80 133 79 122 63 94 152 97 1 101 26 100 121 180 154 158 53 86 75 2 120 44 25 129 92 57 179 145 78 16 171 175 113 31 196 81 90 165 119 40 185 55 52 106 178 49 14 144 62 9 148 15 186 23 89 183 143 117 0 46 139 68 93 140 108 69 18 22 193 41 181 34 160 54 177 184 112 127 70 135 162 123 149 131 65 116
 ```
 
-**Best solution TSPB (cost: 47766):**
+![](MSLS_A.png)
+
+**Best solution TSPB (cost: 45309):**
 ```
-145 195 168 49 33 138 182 11 139 74 118 51 121 131 90 122 107 40 63 135 38 1 156 198 117 54 73 31 193 190 80 175 78 5 177 25 157 104 56 8 111 144 160 29 12 0 109 35 34 55 18 62 124 106 143 159 81 82 87 21 61 36 91 141 97 77 153 187 163 165 127 89 103 114 113 180 176 194 166 86 95 185 179 94 47 148 20 140 183 152 155 3 70 188 6 147 134 169 132 13
+131 121 1 24 156 198 117 54 31 193 190 80 45 175 78 5 177 36 61 91 141 21 104 8 82 77 81 153 187 163 103 89 127 137 114 113 180 176 194 166 86 95 130 99 185 179 66 94 47 148 60 20 28 149 4 199 140 183 152 170 34 55 18 62 128 124 106 159 143 111 35 109 0 29 160 33 138 182 11 139 168 195 145 15 3 70 169 188 6 147 51 191 90 10 133 107 40 63 135 122
 ```
+
+![](MSLS_B.png)
 
 ---
 
