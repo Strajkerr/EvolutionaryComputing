@@ -273,135 +273,121 @@ void M_Steepest_LM_RandomStart(
     int **distanceMatrix,
     std::vector<int> &costVector,
     int size,
-    int totalRuns = 200)
+    int numStarts = 20,
+    int numInstances = 200)
 {
     if (size <= 0) return;
     std::random_device rd;
     std::mt19937 g(rd());
+    long long sumBestPerInstance = 0;                 // sum of best-of-starts per instance
+    int bestOverall = std::numeric_limits<int>::max();
+    int worstOverall = std::numeric_limits<int>::min();
+    std::vector<int> bestSolutionOverall;
 
-    long long totalSum = 0;
-    int bestObjective = std::numeric_limits<int>::max();
-    int worstObjective = std::numeric_limits<int>::min();
-    std::vector<int> bestSolution;
     auto startTime = std::chrono::high_resolution_clock::now();
 
-    for (int run = 0; run < totalRuns; ++run)
-    {
-        std::vector<int> solution = randomPermutation(size, g);
-        int n = static_cast<int>(solution.size());
-        
-        std::vector<int> pos(size, -1);
-        for(int i=0; i<n; ++i) pos[solution[i]] = i;
+    for (int inst = 0; inst < numInstances; ++inst) {
+        int bestThisInstance = std::numeric_limits<int>::max();
+        std::vector<int> bestSolutionThisInstance;
 
-        std::vector<Move> LM;
-        LM.reserve(n * n); 
-        generateMoves(distanceMatrix, costVector, solution, pos, LM, true, size);
-        std::sort(LM.begin(), LM.end(), compareMoves);
+        for (int run = 0; run < numStarts; ++run) {
+            std::vector<int> solution = randomPermutation(size, g);
+            int n = static_cast<int>(solution.size());
 
-        bool localOptimum = false;
+            std::vector<int> pos(size, -1);
+            for (int i = 0; i < n; ++i) pos[solution[i]] = i;
 
-        while (!localOptimum && !LM.empty())
-        {
-            bool moveApplied = false;
-            
-            auto it = LM.begin();
-            while (it != LM.end())
-            {
-                Move m = *it;
-                
-                if (m.type == 1) { // Intra-Route (2-opt)
-                    int e1 = checkEdge(m.u, m.u_next, solution, pos);
-                    int e2 = checkEdge(m.v, m.v_next, solution, pos);
+            std::vector<Move> LM;
+            LM.reserve(n * n);
+            generateMoves(distanceMatrix, costVector, solution, pos, LM, true, size);
+            std::sort(LM.begin(), LM.end(), compareMoves);
 
-                    if (e1 == 0 || e2 == 0) { it = LM.erase(it); continue; } // Edge broken
-                    if (e1 != e2) { ++it; continue; } // Direction mismatch (skip)
+            bool localOptimum = false;
+            while (!localOptimum && !LM.empty()) {
+                bool moveApplied = false;
+                auto it = LM.begin();
+                while (it != LM.end()) {
+                    Move m = *it;
+                    if (m.type == 1) {
+                        int e1 = checkEdge(m.u, m.u_next, solution, pos);
+                        int e2 = checkEdge(m.v, m.v_next, solution, pos);
+                        if (e1 == 0 || e2 == 0) { it = LM.erase(it); continue; }
+                        if (e1 != e2) { ++it; continue; }
 
-                    // Apply 2-opt
-                    moveApplied = true;
-                    int p1, p2;
-                    if (e1 == 1) { p1 = pos[m.u_next]; p2 = pos[m.v]; }
-                    else { p1 = pos[m.u]; p2 = pos[m.v_next]; } // Inverted case
+                        moveApplied = true;
+                        int p1, p2;
+                        if (e1 == 1) { p1 = pos[m.u_next]; p2 = pos[m.v]; }
+                        else { p1 = pos[m.u]; p2 = pos[m.v_next]; }
 
-                    reverseCircularSegment(solution, p1, p2);
-                    
-                    // Update Pos
-                    for(int k=0; k<n; ++k) pos[solution[k]] = k;
-                    
-                    it = LM.erase(it);
-                    
-                    // Generate new moves
-                    std::vector<int> changed = {m.u, m.u_next, m.v, m.v_next};
-                    std::vector<Move> newMoves;
-                    generateMoves(distanceMatrix, costVector, solution, pos, newMoves, false, size, changed);
-                    std::sort(newMoves.begin(), newMoves.end(), compareMoves);
-                    size_t oldSize = LM.size();
-                    LM.insert(LM.end(), newMoves.begin(), newMoves.end());
-                    std::inplace_merge(LM.begin(), LM.begin() + oldSize, LM.end(), compareMoves);
-                    break; 
-                }
-                else if (m.type == 2) { // Inter-Route (Node Replacement)
-                    // m.u is node to remove (must be IN solution)
-                    // m.v is node to add (must be OUT of solution)
-                    
-                    int u_idx = pos[m.u];
-                    int v_idx = pos[m.v];
+                        reverseCircularSegment(solution, p1, p2);
+                        for (int k = 0; k < n; ++k) pos[solution[k]] = k;
+                        it = LM.erase(it);
 
-                    // Validity Check
-                    if (u_idx == -1) { it = LM.erase(it); continue; } // u no longer in solution
-                    if (v_idx != -1) { it = LM.erase(it); continue; } // v already in solution
-
-                    // Lazy Delta Check (neighbors might have changed)
-                    int u_prev = solution[(u_idx - 1 + n) % n];
-                    int u_next = solution[(u_idx + 1) % n];
-                    
-                    int current_delta = (dist(u_prev, m.v) + dist(m.v, u_next) + cost(m.v)) 
-                                      - (dist(u_prev, m.u) + dist(m.u, u_next) + cost(m.u));
-                    
-                    if (current_delta >= 0) {
-                        it = LM.erase(it); // No longer improving
-                        continue;
+                        std::vector<int> changed = {m.u, m.u_next, m.v, m.v_next};
+                        std::vector<Move> newMoves;
+                        generateMoves(distanceMatrix, costVector, solution, pos, newMoves, false, size, changed);
+                        std::sort(newMoves.begin(), newMoves.end(), compareMoves);
+                        size_t oldSize = LM.size();
+                        LM.insert(LM.end(), newMoves.begin(), newMoves.end());
+                        std::inplace_merge(LM.begin(), LM.begin() + oldSize, LM.end(), compareMoves);
+                        break;
                     }
+                    else if (m.type == 2) {
+                        int u_idx = pos[m.u];
+                        int v_idx = pos[m.v];
+                        if (u_idx == -1) { it = LM.erase(it); continue; }
+                        if (v_idx != -1) { it = LM.erase(it); continue; }
 
-                    // Apply Move
-                    moveApplied = true;
-                    solution[u_idx] = m.v; // Replace u with v
-                    pos[m.u] = -1;         // u is now out
-                    pos[m.v] = u_idx;      // v is now in
+                        int u_prev = solution[(u_idx - 1 + n) % n];
+                        int u_next = solution[(u_idx + 1) % n];
+                        int current_delta = (dist(u_prev, m.v) + dist(m.v, u_next) + cost(m.v))
+                                          - (dist(u_prev, m.u) + dist(m.u, u_next) + cost(m.u));
+                        if (current_delta >= 0) { it = LM.erase(it); continue; }
 
-                    it = LM.erase(it);
+                        moveApplied = true;
+                        solution[u_idx] = m.v;
+                        pos[m.u] = -1;
+                        pos[m.v] = u_idx;
+                        it = LM.erase(it);
 
-                    // Generate new moves
-                    // Nodes changed: The new node v, and its neighbors (previously u's neighbors)
-                    // And the removed node u (now available for insertion elsewhere)
-                    std::vector<int> changed = {m.v, u_prev, u_next, m.u};
-                    std::vector<Move> newMoves;
-                    generateMoves(distanceMatrix, costVector, solution, pos, newMoves, false, size, changed);
-                    std::sort(newMoves.begin(), newMoves.end(), compareMoves);
-                    size_t oldSize = LM.size();
-                    LM.insert(LM.end(), newMoves.begin(), newMoves.end());
-                    std::inplace_merge(LM.begin(), LM.begin() + oldSize, LM.end(), compareMoves);
-                    break;
+                        std::vector<int> changed = {m.v, u_prev, u_next, m.u};
+                        std::vector<Move> newMoves;
+                        generateMoves(distanceMatrix, costVector, solution, pos, newMoves, false, size, changed);
+                        std::sort(newMoves.begin(), newMoves.end(), compareMoves);
+                        size_t oldSize = LM.size();
+                        LM.insert(LM.end(), newMoves.begin(), newMoves.end());
+                        std::inplace_merge(LM.begin(), LM.begin() + oldSize, LM.end(), compareMoves);
+                        break;
+                    }
                 }
+                if (!moveApplied) localOptimum = true;
             }
-            if (!moveApplied) localOptimum = true;
-        }
-        bestSolution = solution;
-        int finalCost = evaluateSolution(solution, distanceMatrix, costVector);
-        totalSum += finalCost;
-        if (finalCost < bestObjective) bestObjective = finalCost;
-        if (finalCost > worstObjective) worstObjective = finalCost;
-    }
 
+            int finalCost = evaluateSolution(solution, distanceMatrix, costVector);
+            if (finalCost < bestThisInstance) {
+                bestThisInstance = finalCost;
+                bestSolutionThisInstance = solution;
+            }
+        } // end runs per instance
+
+        sumBestPerInstance += bestThisInstance;
+        if (bestThisInstance < bestOverall) {
+            bestOverall = bestThisInstance;
+            bestSolutionOverall = bestSolutionThisInstance;
+        }
+        if (bestThisInstance > worstOverall) worstOverall = bestThisInstance;
+    } // end instances
     auto endTime = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = endTime - startTime;
     
     std::cout << "====== M_Steepest_LM (Lazy Eval + In/Out Swap) ======\n";
-    std::cout << "  runs = " << totalRuns << "\n";
-    std::cout << "  min = " << bestObjective << "\n";
-    std::cout << "  max = " << worstObjective << "\n";
-    std::cout << "  avg = " << (double)totalSum / totalRuns << "\n";
+    std::cout << "  instances = " << numInstances << "\n";
+    std::cout << "  runs per instance = " << numStarts << "\n";
+    std::cout << "  min = " << bestOverall << "\n";
+    std::cout << "  max = " << worstOverall << "\n";
+    std::cout << "  avg = " << (double)sumBestPerInstance / numInstances << "\n";
     std::cout << "Execution time: " << elapsed.count() << " s\n\n";
-    for (auto node : bestSolution) {
+    for (auto node : bestSolutionOverall) {
         std::cout << node << " ";
     }
     std::cout << "\n";
