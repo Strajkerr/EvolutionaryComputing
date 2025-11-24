@@ -274,8 +274,8 @@ void M_Steepest_LM_RandomStart(
     int **distanceMatrix,
     std::vector<int> &costVector,
     int size,
-    int numStarts = 20,
-    int numInstances = 200)
+    int numStarts = 200,      // <-- This should be 200
+    int numInstances = 20)  // <-- This should be 20
 {
     if (size <= 0) return;
     std::random_device rd;
@@ -644,11 +644,10 @@ int main()
         std::cout << "Processing: " << FILE_NAME << "\n";
         std::cout << "========================================\n\n";
         
-        // CORRECT PARAMETERS: 20 runs, 200 LS per run
+        // CORRECT PARAMETERS: 20 instances, 200 LS per instance
         M_Steepest_LM_RandomStart(distanceMatrix, costVector, size, 200, 20);
         
         // Calculate average time for ILS
-        // (Your MSLS should output time per run, use that)
         double timeLimit = 0.065; // Adjust based on MSLS output
         
         ILS_Steepest_LM(distanceMatrix, costVector, size, 20, timeLimit);
