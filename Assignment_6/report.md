@@ -20,14 +20,6 @@ The distances between nodes are calculated as Euclidean distances rounded mathem
 ### MSLS (Multiple Start Local Search)
 
 #### Description
-- Multiple Start Local Search performs steepest local search with list of moves (LM) from multiple random starting solutions.
-- **Structure**: 20 independent runs, each performing 200 local search iterations from random starts
-- **Reporting**: Each run reports the best solution found among its 200 LS iterations
-- **Total evaluations per run**: 200 local search calls
-- **Neighbourhood**: 
-  - **Intra-route**: 2-edge exchanges (2-opt)
-  - **Inter-route**: Node exchange (swap selected node with unselected node)
-- **Strategy**: For each random start, build complete list of improving moves, apply the best (steepest) move, update affected moves lazily, repeat until local optimum.
 
 #### Pseudocode
 ```pseudocode
