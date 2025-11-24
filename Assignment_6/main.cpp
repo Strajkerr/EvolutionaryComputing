@@ -631,32 +631,31 @@ int main()
     for (const auto &FILE_NAME : fileNames)
     {
         std::vector<std::vector<int>> data;
-        if (!getDataFromFile(FILE_NAME, data)) continue;
-
+        if (!getDataFromFile(FILE_NAME, data)) {
+            std::cerr << "Failed to open: " << FILE_NAME << "\n";
+            continue;
+        }
+        
         int size = data.size();
         int **distanceMatrix = getDistanceMatrix(data, size);
         std::vector<int> costVector = getCostVector(data);
-
+        
         std::cout << "\n========================================\n";
         std::cout << "Processing: " << FILE_NAME << "\n";
         std::cout << "========================================\n\n";
-
-        // Run MSLS first to get average time
-        int numStarts = 20;      // runs per instance
-        int numInstances = 200;  // number of instances (each instance = numStarts runs)
-        auto mslsStart = std::chrono::high_resolution_clock::now();
-        M_Steepest_LM_RandomStart(distanceMatrix, costVector, size, numStarts, numInstances);
-        auto mslsEnd = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> mslsTime = mslsEnd - mslsStart;
-        // average time per single local-search run
-        double avgTimePerRun = mslsTime.count() / (static_cast<double>(numStarts) * static_cast<double>(numInstances));
-
-        std::cout << "\n";
         
-        // Run ILS with time limit based on MSLS
-        ILS_Steepest_LM(distanceMatrix, costVector, size, 20, avgTimePerRun);
-
-        for (int i = 0; i < size; i++) delete[] distanceMatrix[i];
+        // CORRECT PARAMETERS: 20 runs, 200 LS per run
+        M_Steepest_LM_RandomStart(distanceMatrix, costVector, size, 200, 20);
+        
+        // Calculate average time for ILS
+        // (Your MSLS should output time per run, use that)
+        double timeLimit = 0.065; // Adjust based on MSLS output
+        
+        ILS_Steepest_LM(distanceMatrix, costVector, size, 20, timeLimit);
+        
+        // Cleanup
+        for (int i = 0; i < size; i++)
+            delete[] distanceMatrix[i];
         delete[] distanceMatrix;
     }
     return 0;

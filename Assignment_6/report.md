@@ -269,8 +269,8 @@ The perturbation strategy was designed with the following considerations:
 | M8 — Greedy first‑improvement, 2-edge (greedy start) | 88224.8 (79665 – 98684) | 58988.7 (55836 – 62679) |
 | Candidate List Steepest descent | 77528.3 (73143 - 84209) | 48340.6 (45340 - 51885) |
 | List of moves Steepest descent | 74444.5 (70453 - 79976) | 49121.1 (45898 - 52188) |
-| **MSLS (20×200 LS)** | **74286.3 (72344 – 76059)** | **49000.7 (47766 – 51437)** | 1.31s |
-| **ILS** | **73736.9 (71906 – 77662)** | **48414.7 (45809 – 50501)** | 1.43s |
+| **MSLS (20×200 LS)** | 72300.6 (70453 – 73466) | **49000.7 (47766 – 51437)** | 
+| **ILS** | **73736.9 (71906 – 77662)** | **48414.7 (45809 – 50501)** | 
 ### Running times (seconds)
 
 | Method | Instance 1 (TSPA) | Instance 2 (TSPB) |
@@ -291,10 +291,28 @@ The perturbation strategy was designed with the following considerations:
 | M8 — Greedy first‑improvement, 2-edge (greedy start) | 4.25992 s | 2.75454 s |
 | Candidate List Steepest descent | 0.82824 s | 0.899243 s |
 | List of moves Steepest descent | 16.4443 s | 16.6364 s |
-| **MSLS (20×200 LS)** | **74286.3 (72344 – 76059)** | **49000.7 (47766 – 51437)** | 1.31s |
-| **ILS** | **73736.9 (71906 – 77662)** | **48414.7 (45809 – 50501)** | 1.43s |
+| **MSLS (20×200 LS)** | **1.31 s** | **1.34 s** |
+| **ILS** | **1.43 s** | **1.45 s** |
 
+## Comparison with Best Construction Heuristic
 
+**Best construction heuristic from Assignment 2**: 
+- Nearest neighbour with insertion at best position
+- TSPA: 71071.2 avg, 69941 min
+- TSPB: 44649.9 avg, 43163 min
+
+### MSLS vs Best Construction:
+- **TSPA**: MSLS worse by 3.0% avg, 3.4% in best solution
+- **TSPB**: MSLS worse by 9.7% avg, 10.7% in best solution
+
+### ILS vs Best Construction:
+- **TSPA**: ILS worse by 3.8% avg, 2.8% in best solution
+- **TSPB**: ILS worse by 8.4% avg, 6.1% in best solution
+
+**Key observation**: Both MSLS and ILS produce worse results than the simple construction heuristic. This is because:
+1. They start from random solutions (far from optimal)
+2. Construction heuristic builds good solutions from the start
+3. **Recommendation**: Combine methods - start ILS from construction heuristic solution
 
 
 ---
