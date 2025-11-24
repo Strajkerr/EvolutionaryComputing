@@ -84,7 +84,8 @@ int evaluateSolution(const std::vector<int> &solution, int **distanceMatrix, con
 
 std::vector<int> randomPermutation(int size, std::mt19937 &g)
 {
-    int nodesToVisit = (size % 2 == 0) ? (size / 2) : ((size + 1) / 2);
+    // Use exactly 50% of the given nodes. For odd `size` this takes floor(size/2).
+    int nodesToVisit = size / 2;
     std::vector<int> solution(size);
     std::iota(solution.begin(), solution.end(), 0);
     std::shuffle(solution.begin(), solution.end(), g);
@@ -641,11 +642,14 @@ int main()
         std::cout << "========================================\n\n";
 
         // Run MSLS first to get average time
+        int numStarts = 20;      // runs per instance
+        int numInstances = 200;  // number of instances (each instance = numStarts runs)
         auto mslsStart = std::chrono::high_resolution_clock::now();
-        M_Steepest_LM_RandomStart(distanceMatrix, costVector, size, 20);
+        M_Steepest_LM_RandomStart(distanceMatrix, costVector, size, numStarts, numInstances);
         auto mslsEnd = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> mslsTime = mslsEnd - mslsStart;
-        double avgTimePerRun = mslsTime.count() / 20.0;
+        // average time per single local-search run
+        double avgTimePerRun = mslsTime.count() / (static_cast<double>(numStarts) * static_cast<double>(numInstances));
 
         std::cout << "\n";
         
