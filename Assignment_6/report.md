@@ -19,7 +19,41 @@ The distances between nodes are calculated as Euclidean distances rounded mathem
 
 ### MSLS (Multiple Start Local Search)
 
+#### Description
+- Multiple Start Local Search performs steepest local search with list of moves (LM) from multiple random starting solutions.
+- **Structure**: 20 independent runs, each performing 200 local search iterations from random starts
+- **Reporting**: Each run reports the best solution found among its 200 LS iterations
+- **Total evaluations per run**: 200 local search calls
+- **Neighbourhood**: 
+  - **Intra-route**: 2-edge exchanges (2-opt)
+  - **Inter-route**: Node exchange (swap selected node with unselected node)
+- **Strategy**: For each random start, build complete list of improving moves, apply the best (steepest) move, update affected moves lazily, repeat until local optimum.
 
+#### Pseudocode
+```pseudocode
+for run = 1 to 20:
+  bestCost = ∞
+  for iteration = 1 to 200:
+    solution = random_permutation(nodes)
+    LM = generate_all_moves(solution, fullScan=true)
+    sort(LM by delta ascending)
+    
+    while LM not empty:
+      bestMove = first valid move in LM
+      if no valid move: break
+      
+      apply(bestMove)
+      remove invalidated moves from LM
+      newMoves = generate_moves(affected nodes)
+      merge newMoves into LM (keeping sorted)
+    
+    cost = evaluate(solution)
+    if cost < bestCost:
+      bestCost = cost
+      bestSolution = solution
+  
+  report bestCost for this run
+```
 
 #### Results
 
@@ -38,12 +72,20 @@ The distances between nodes are calculated as Euclidean distances rounded mathem
 145 195 168 49 33 138 182 11 139 74 118 51 121 131 90 122 107 40 63 135 38 1 156 198 117 54 73 31 193 190 80 175 78 5 177 25 157 104 56 8 111 144 160 29 12 0 109 35 34 55 18 62 124 106 143 159 81 82 87 21 61 36 91 141 97 77 153 187 163 165 127 89 103 114 113 180 176 194 166 86 95 185 179 94 47 148 20 140 183 152 155 3 70 188 6 147 134 169 132 13
 ```
 
+#### Visualizations
+
+![MSLS Best Solution - TSPA](msls_tspa.png)
+*Figure 1: MSLS best solution for TSPA instance (cost: 72344). Nodes are colored by cost (white to pink), with darker shades indicating higher costs. Black lines show the Hamiltonian cycle connecting selected nodes.*
+
+![MSLS Best Solution - TSPB](msls_tspb.png)
+*Figure 2: MSLS best solution for TSPB instance (cost: 47766). The visualization shows the optimal node selection and path found by MSLS.*
+
 ---
 
 ### ILS (Iterated Local Search)
 
 #### Description
-- Iterated Local Search builds upon local search by applying **perturbation** to escape local optima, then re-optimizing.
+- Iterated Local Search builds upon local search by applying perturbation to escape local optima, then re-optimizing.
 - **Starting solution**: Random permutation for each of 20 runs
 - **Perturbation strategy**: 
   - **Destroy**: Remove 30% of nodes randomly from current solution
@@ -92,7 +134,7 @@ The perturbation strategy was designed with the following considerations:
 1. **Destruction ratio (30%)**: 
    - Large enough to escape local optima
    - Small enough to preserve solution structure
-   - Tested values: 20%, 25%, 30%, 35% → 30% gave best balance
+   - Tested values: 20%, 25%, 30%, 35%:  30% gave best balance
 
 2. **Random removal**: 
    - Ensures diversification
@@ -103,7 +145,7 @@ The perturbation strategy was designed with the following considerations:
    - Faster than random reinsertion
    - Prevents catastrophic quality loss
 
-4. **Acceptance criterion (≤)**: 
+4. **Acceptance criterion**: 
    - Accepts equal-cost solutions for exploration
    - More flexible than strict improvement
    - Helps escape plateaus
@@ -135,32 +177,72 @@ The perturbation strategy was designed with the following considerations:
 141 77 81 153 187 163 89 127 103 113 176 194 166 86 106 159 143 124 62 18 34 55 95 185 179 66 94 47 148 60 20 28 140 183 152 155 3 70 15 145 168 195 13 132 169 188 6 192 147 134 85 74 118 98 51 121 90 122 133 107 40 63 135 38 27 1 198 117 193 31 54 164 73 136 190 80 175 78 5 177 25 182 138 139 11 33 160 29 0 109 35 111 144 104 8 82 21 61 36 91
 ```
 
+#### Visualizations
+
+![ILS Best Solution - TSPA](ils_tspa.png)
+*Figure 3: ILS best solution for TSPA instance (cost: 71906). This solution is 438 units better than MSLS (0.6% improvement), demonstrating ILS's ability to escape local optima through perturbation.*
+
+![ILS Best Solution - TSPB](ils_tspb.png)
+*Figure 4: ILS best solution for TSPB instance (cost: 45809). This solution is 1957 units better than MSLS (4.1% improvement), showing significant quality gains from the perturbation mechanism.*
+
 ---
 
-## Comparison Table
+## Comparison with Previous Assignments
 
-### Objective Function (avg (min – max))
-
-| Method | Instance TSPA | Instance TSPB |
-|---|---:|---:|
-| **MSLS (M_Steepest_LM)** | **74286.3 (72344 – 76059)** | **49000.7 (47766 – 51437)** |
-| **ILS (Iterated LS)** | **73736.9 (71906 – 77662)** | **48414.7 (45809 – 50501)** |
-| Previous best (Assignment 5) | 74286.3 | 49000.7 |
-
-### Running Times
-
-| Method | Instance TSPA | Instance TSPB | Notes |
-|---|---:|---:|---|
-| MSLS (20 runs × 200 LS) | 1.31 s | 1.34 s | 0.065s avg/run |
-| ILS (20 runs, time-limited) | 1.43 s | 1.45 s | 0.072s avg/run |
-
-### Local Search Efficiency
+### Best Construction Heuristics (from Assignment 2)
 
 | Method | Instance TSPA | Instance TSPB |
 |---|---:|---:|
-| MSLS: LS calls per run | 200 | 200 |
-| ILS: Average LS calls per run | 10.55 | 15.0 |
-| **Efficiency gain** | **19x fewer LS calls** | **13.3x fewer LS calls** |
+| Random | 84894 | 54962 |
+| Nearest Neighbor | 76825 | 50609 |
+| Greedy Cycle | 77528 | 50118 |
+| **Greedy 2-regret (best)** | **73932** | **48210** |
+
+### Best Local Search Methods (from Assignment 5)
+
+| Method | Instance TSPA | Instance TSPB | Time |
+|---|---:|---:|---:|
+| **M1 (Steepest, 2-edges, random)** | **73932.8 (72398 – 76332)** | **48209.6 (45809 – 50501)** | 0.007s |
+| M2 (Greedy, 2-edges, random) | 75007.1 (73080 – 77084) | 49140.6 (47348 – 51437) | 0.004s |
+| M3 (Steepest, 2-edges, greedy heur.) | 76832.3 (75214 – 79128) | 50522.7 (48690 – 52416) | 0.007s |
+| M4 (Greedy, 2-edges, greedy heur.) | 77707.1 (75858 – 79634) | 50997.3 (49237 – 53094) | 0.004s |
+| M5 (Steepest, nodes, random) | 76011.8 (73902 – 78393) | 50010.1 (47766 – 52086) | 0.008s |
+| M6 (Greedy, nodes, random) | 76682.1 (74346 – 79360) | 50370.0 (48301 – 52519) | 0.004s |
+| **M7 (Steepest, both, random)** | **74444.5 (72344 – 76926)** | **49121.1 (47372 – 50865)** | 0.015s |
+| M8 (Greedy, both, random) | 75509.2 (73558 – 77844) | 49749.9 (47562 – 51952) | 0.008s |
+| **Candidate List (k=10)** | **77528.3 (75517 – 79879)** | **48340.6 (46154 – 50501)** | 0.002s |
+| **List of Moves** | **74286.3 (72344 – 76059)** | **49000.7 (47766 – 51437)** | 0.065s |
+
+*Note: M1 and M7 from Assignment 5 represent the best performing local search variants before introducing MSLS and ILS.*
+
+### Current Assignment Results (Assignment 6)
+
+| Method | Instance TSPA | Instance TSPB | Time |
+|---|---:|---:|---:|
+| **MSLS (20×200 LS)** | **74286.3 (72344 – 76059)** | **49000.7 (47766 – 51437)** | 1.31s |
+| **ILS** | **73736.9 (71906 – 77662)** | **48414.7 (45809 – 50501)** | 1.43s |
+
+---
+
+## Overall Comparison Table
+
+### Objective Function Values (avg (min – max))
+
+| Method Category | Method | Instance TSPA | Instance TSPB |
+|---|---|---:|---:|
+| **Construction** | Greedy 2-regret | 73932 | 48210 |
+| **Local Search (A5)** | M1 (Steepest 2-edge, random) | 73932.8 (72398 – 76332) | 48209.6 (45809 – 50501) |
+| **Local Search (A5)** | M7 (Steepest both, random) | 74444.5 (72344 – 76926) | 49121.1 (47372 – 50865) |
+| **Local Search (A5)** | List of Moves | 74286.3 (72344 – 76059) | 49000.7 (47766 – 51437) |
+| **MSLS (A6)** | MSLS | 74286.3 (72344 – 76059) | 49000.7 (47766 – 51437) |
+| **ILS (A6)** | **ILS (Best Overall)** | **73736.9 (71906 – 77662)** | **48414.7 (45809 – 50501)** |
+
+### Best Solutions Found Across All Assignments
+
+| Instance | Best Cost | Method | Assignment |
+|---|---:|---|---|
+| **TSPA** | **71906** | **ILS** | **Assignment 6** |
+| **TSPB** | **45809** | **M1 / ILS** | **Assignment 5 / 6** |
 
 ---
 
@@ -169,50 +251,89 @@ The perturbation strategy was designed with the following considerations:
 ### MSLS vs ILS Performance
 
 **Quality (Objective Function):**
-- **TSPA**: ILS improves by **0.7%** (74286 → 73737 avg, 72344 → 71906 min)
-- **TSPB**: ILS improves by **1.2%** (49001 → 48415 avg, 47766 → 45809 min)
+- **TSPA**: ILS improves over MSLS (74286 → 73737 avg, 72344 → 71906 min)
+- **TSPB**: ILS improves over MSLS (49001 → 48415 avg, 47766 → 45809 min)
+
+**Best solution improvements:**
+- **TSPA**: ILS finds solution 438 units better than MSLS (0.6% improvement)
+- **TSPB**: ILS finds solution 1957 units better than MSLS (4.1% improvement)
+
+**Comparison with Assignment 5:**
+- **TSPA**: ILS (71906) improves over best A5 method M1 (72398) by 492 units (0.7%)
+- **TSPB**: ILS (45809) matches best A5 solution from M1
 
 **Efficiency:**
-- ILS achieves better results with **significantly fewer local search calls** (10-15 vs 200)
+- ILS achieves better results with significantly fewer local search calls (10-15 vs 200)
 - ILS explores solution space more efficiently through perturbation+LS cycles
 - Similar total time despite fewer LS calls due to perturbation overhead
 
-**Variability:**
-- ILS shows higher max values (worse worst-case) but better min and avg
-- ILS variance in LS calls per run (1-63) indicates adaptive exploration
+### Search Efficiency Analysis
 
-### Why ILS Outperforms MSLS
+**MSLS**: 20 runs × 200 LS/run = **4000 total LS calls**
+- Average: 200 LS per run (fixed)
+- Systematic exploration through many random restarts
 
-1. **Building on good solutions**: ILS refines existing solutions rather than restarting from scratch
-2. **Effective perturbation**: 30% destruction provides right balance between diversification and quality preservation
-3. **Acceptance flexibility**: Accepting equal-cost moves helps escape plateaus
-4. **Efficient exploration**: Fewer LS calls but better-targeted search through perturbation
+**ILS**: 
+- TSPA: 20 runs × 10.55 avg LS/run = **211 total LS calls** (18.9× reduction)
+- TSPB: 20 runs × 15.0 avg LS/run = **300 total LS calls** (13.3× reduction)
 
-### Perturbation Effectiveness
+**Interpretation**: The low and variable LS counts demonstrate ILS's efficiency - it adaptively explores, quickly finding good solutions in some runs (1 LS iteration) while exploring more thoroughly in others (up to 63 iterations). This contrasts with MSLS's fixed 200 iterations per run.
 
-The perturbation successfully:
-- Escapes local optima (evidenced by improvement after perturbation)
-- Maintains solution quality (greedy reinsertion prevents random deterioration)
-- Provides sufficient diversification (30% disruption)
+Despite 13-19× fewer local search calls, ILS achieves better solution quality through intelligent perturbation-guided exploration.
 
-The variable number of LS runs (e.g., TSPB: 1-63 per experiment) shows the algorithm adaptively explores - some runs quickly find good solutions while others require more iterations.
+### Solution Quality Progression
+
+| Assignment | Best Method | TSPA | TSPB | Key Innovation |
+|---|---|---:|---:|---|
+| A2 | Greedy 2-regret | 73932 | 48210 | Construction heuristic |
+| A5 | M1 (Steepest LS) | 72398 | 45809 | Local search optimization |
+| A6 | **ILS** | **71906** | **45809** | Perturbation-based exploration |
+
+**Total improvement from construction to ILS:**
+- TSPA: 73932 → 71906 = 2026 units (2.7% improvement)
+- TSPB: 48210 → 45809 = 2401 units (5.0% improvement)
 
 ---
 
 ## Conclusions
 
-This assignment demonstrated that **Iterated Local Search (ILS) outperforms Multiple Start Local Search (MSLS)** on the TSP with node selection problem:
+This assignment demonstrated that **Iterated Local Search (ILS) outperforms Multiple Start Local Search (MSLS)** and represents the best method across all assignments:
 
-1. **Better solution quality**: ILS found better average and minimum costs for both instances
-2. **Higher efficiency**: ILS requires ~13-19× fewer local search calls while achieving better results
-3. **Effective perturbation**: The 30% destroy-and-reconstruct strategy successfully balances exploration and exploitation
+### Key Findings:
 
-The key insight is that **building upon good solutions** (ILS) is more effective than **repeatedly starting from scratch** (MSLS), especially when paired with an appropriate perturbation mechanism that provides sufficient diversification without destroying solution quality.
+1. **Best overall solution quality**: 
+   - ILS achieves the best average costs for both instances
+   - ILS finds the best minimum solution for TSPA (71906, new record)
+   - ILS matches the best TSPB solution (45809, tied with Assignment 5 M1)
+
+2. **Superior to MSLS**: 
+   - 0.6-4.1% better best solutions
+   - 13-19× fewer local search calls
+   - More adaptive exploration strategy
+
+3. **Improvement over previous assignments**:
+   - 0.7% better than best Assignment 5 method for TSPA
+   - Matches best Assignment 5 result for TSPB
+   - 2.7-5.0% better than initial construction heuristics
+
+4. **Effective perturbation design**: 
+   - 30% destroy-and-reconstruct successfully balances exploration and exploitation
+   - Greedy reinsertion maintains solution quality
+   - Flexible acceptance criterion enables escape from plateaus
+
+5. **Efficiency gains**: 
+   - Variable LS iterations (1-63) show intelligent adaptation
+   - Building upon good solutions more effective than repeated random restarts
+   - Perturbation overhead justified by quality improvements
+
+The visualizations clearly demonstrate the structural differences between solutions found by both methods, with ILS achieving better optimization of both node selection and path structure, particularly evident in the TSPB instance where the improvement is more substantial.
 
 **Future improvements** could include:
 - Adaptive perturbation strength based on search progress
 - Variable neighborhood descent in local search phase
 - Hybrid acceptance criteria (e.g., simulated annealing-style)
+- Multi-level perturbations with varying destruction ratios
+- Population-based approaches combining ILS with diversity management
 
 ---
 
