@@ -20,6 +20,14 @@ The distances between nodes are calculated as Euclidean distances rounded mathem
 ### MSLS (Multiple Start Local Search)
 
 #### Description
+- Multiple Start Local Search performs steepest local search with list of moves (LM) from multiple random starting solutions.
+- **Structure**: 20 independent runs, each performing 200 local search iterations from random starts
+- **Reporting**: Each run reports the best solution found among its 200 LS iterations
+- **Total evaluations per run**: 200 local search calls
+- **Neighbourhood**: 
+  - **Intra-route**: 2-edge exchanges (2-opt)
+  - **Inter-route**: Node exchange (swap selected node with unselected node)
+- **Strategy**: For each random start, build complete list of improving moves, apply the best (steepest) move, update affected moves lazily, repeat until local optimum.
 
 #### Pseudocode
 ```pseudocode
@@ -66,10 +74,11 @@ for run = 1 to 20:
 
 #### Visualizations
 
-![MSLS Best Solution - TSPA](../msls_tspa.png)
+![MSLS Best Solution - TSPA](msls_tspa.png)
+*Figure 1: MSLS best solution for TSPA instance (cost: 72344)*
 
-![MSLS Best Solution - TSPB](../msls_tspb.png)
-
+![MSLS Best Solution - TSPB](msls_tspb.png)
+*Figure 2: MSLS best solution for TSPB instance (cost: 47766)*
 
 ---
 
@@ -125,7 +134,7 @@ The perturbation strategy was designed with the following considerations:
 1. **Destruction ratio (30%)**: 
    - Large enough to escape local optima
    - Small enough to preserve solution structure
-   - Tested values: 20%, 25%, 30%, 35%:  30% gave best balance
+   - Tested values: 20%, 25%, 30%, 35%: 30% gave best balance
 
 2. **Random removal**: 
    - Ensures diversification
@@ -170,70 +179,67 @@ The perturbation strategy was designed with the following considerations:
 
 #### Visualizations
 
-![ILS Best Solution - TSPA](../ils_tspa.png)
+![ILS Best Solution - TSPA](ils_tspa.png)
+*Figure 3: ILS best solution for TSPA instance (cost: 71906)*
 
-
-![ILS Best Solution - TSPB]../(ils_tspb.png)
+![ILS Best Solution - TSPB](ils_tspb.png)
+*Figure 4: ILS best solution for TSPB instance (cost: 45809)*
 
 
 ---
 
 ## Comparison with Previous Assignments
+### Comparison table
 
-### Best Construction Heuristics (from Assignment 2)
+### Objective function (avg (min – max))
 
-| Method | Instance TSPA | Instance TSPB |
+| Method | Instance 1 (TSPA) | Instance 2 (TSPB) |
+|---|---:|---:| 
+| Random solution | 263102 (231391 – 292542) | 212245 (194822 – 234932) |
+| Nearest neighbour (append only) | 83234.5 (81598 – 88112) | 52662 (51037 – 56570) |
+| Nearest neighbour (insertion at best position) | 71071.2 (69941 – 73650) | 44649.9 (43163 – 51497) |
+| Greedy (fully greedy insertion) | 72694.4 (70285 – 76228) | 50345.1 (46166 – 58032) |
+| Greedy 2‑regret | 72370.8 (68080 – 77702) | 114825 (105864 – 123334) |
+| Greedy 2‑regret weighted (α=0.5) | 50842.2 (47367 – 54016) | 72096.1 (71062 – 73532) |
+| M1 — Steepest descent, 2-node exchange (random start) | 88008.9 (80261 – 97609) | 62910.1 (56293 – 69558) |
+| M2 — Steepest descent, 2-node exchange (greedy start) | 94771.5 (87362 – 101867) | 60280.5 (59303 – 63062) |
+| M3 — Steepest descent, 2-edge (random start) | 73932.8 (70795 – 79370) | 48209.6 (45521 – 51880) |
+| M4 — Steepest descent, 2-edge (greedy start) | 93879.3 (86202 – 99484) | 59034.7 (57620 – 61810) |
+| M5 — Greedy first‑improvement, 2-node exchange (random start) | 85731 (78963 – 92428) | 60899.2 (54007 – 68549) |
+| M6 — Greedy first‑improvement, 2-node exchange (greedy start) | 91366.9 (84058 – 100296) | 60717.1 (56993 – 64953) |
+| M7 — Greedy first‑improvement, 2-edge (random start) | 73148.5 (71193 – 76253) | 47868.2 (45039 – 51839) |
+| M8 — Greedy first‑improvement, 2-edge (greedy start) | 88224.8 (79665 – 98684) | 58988.7 (55836 – 62679) |
+| Candidate List Steepest descent | 77528.3 (73143 - 84209) | 48340.6 (45340 - 51885) |
+| List of moves Steepest descent | 74444.5 (70453 - 79976) | 49121.1 (45898 - 52188) |
+| **MSLS (20×200 LS)** | **74286.3 (72344 – 76059)** | **49000.7 (47766 – 51437)** | 1.31s |
+| **ILS** | **73736.9 (71906 – 77662)** | **48414.7 (45809 – 50501)** | 1.43s |
+### Running times (seconds)
+
+| Method | Instance 1 (TSPA) | Instance 2 (TSPB) |
 |---|---:|---:|
-| Random | 84894 | 54962 |
-| Nearest Neighbor | 76825 | 50609 |
-| Greedy Cycle | 77528 | 50118 |
-| **Greedy 2-regret (best)** | **73932** | **48210** |
-
-### Best Local Search Methods (from Assignment 5)
-
-| Method | Instance TSPA | Instance TSPB | Time |
-|---|---:|---:|---:|
-| **M1 (Steepest, 2-edges, random)** | **73932.8 (72398 – 76332)** | **48209.6 (45809 – 50501)** | 0.007s |
-| M2 (Greedy, 2-edges, random) | 75007.1 (73080 – 77084) | 49140.6 (47348 – 51437) | 0.004s |
-| M3 (Steepest, 2-edges, greedy heur.) | 76832.3 (75214 – 79128) | 50522.7 (48690 – 52416) | 0.007s |
-| M4 (Greedy, 2-edges, greedy heur.) | 77707.1 (75858 – 79634) | 50997.3 (49237 – 53094) | 0.004s |
-| M5 (Steepest, nodes, random) | 76011.8 (73902 – 78393) | 50010.1 (47766 – 52086) | 0.008s |
-| M6 (Greedy, nodes, random) | 76682.1 (74346 – 79360) | 50370.0 (48301 – 52519) | 0.004s |
-| **M7 (Steepest, both, random)** | **74444.5 (72344 – 76926)** | **49121.1 (47372 – 50865)** | 0.015s |
-| M8 (Greedy, both, random) | 75509.2 (73558 – 77844) | 49749.9 (47562 – 51952) | 0.008s |
-| **Candidate List (k=10)** | **77528.3 (75517 – 79879)** | **48340.6 (46154 – 50501)** | 0.002s |
-| **List of Moves** | **74286.3 (72344 – 76059)** | **49000.7 (47766 – 51437)** | 0.065s |
-
-*Note: M1 and M7 from Assignment 5 represent the best performing local search variants before introducing MSLS and ILS.*
-
-### Current Assignment Results (Assignment 6)
-
-| Method | Instance TSPA | Instance TSPB | Time |
-|---|---:|---:|---:|
+| Random solution | 0.012564 s | 0.0098 s |
+| Nearest neighbour (append only) | 0.014616 s | 0.0120 s |
+| Nearest neighbour (insertion) | 49.8077 s | 50.0508 s |
+| Greedy (fully greedy insertion) | 52.5566 s | 52.7421 s |
+| Greedy 2‑regret | 31.67 s | 31.55 s |
+| Greedy 2‑regret weighted (α=0.5) | 34.35 s | 34.16 s |
+| M1 — Steepest descent, 2-node exchange (random start) | 382.404 s | 366.994 s |
+| M2 — Steepest descent, 2-node exchange (greedy start) | 141.461 s | 82.1686 s |
+| M3 — Steepest descent, 2-edge (random start) | 414.305 s | 416.109 s |
+| M4 — Steepest descent, 2-edge (greedy start) | 177.373 s | 124.25 s |
+| M5 — Greedy first‑improvement, 2-node exchange (random start) | 8.07472 s | 5.15502 s |
+| M6 — Greedy first‑improvement, 2-node exchange (greedy start) | 3.36837 s | 2.17246 s |
+| M7 — Greedy first‑improvement, 2-edge (random start) | 6.69207 s | 4.56621 s |
+| M8 — Greedy first‑improvement, 2-edge (greedy start) | 4.25992 s | 2.75454 s |
+| Candidate List Steepest descent | 0.82824 s | 0.899243 s |
+| List of moves Steepest descent | 16.4443 s | 16.6364 s |
 | **MSLS (20×200 LS)** | **74286.3 (72344 – 76059)** | **49000.7 (47766 – 51437)** | 1.31s |
 | **ILS** | **73736.9 (71906 – 77662)** | **48414.7 (45809 – 50501)** | 1.43s |
 
+
+
+
 ---
-
-## Overall Comparison Table
-
-### Objective Function Values (avg (min – max))
-
-| Method Category | Method | Instance TSPA | Instance TSPB |
-|---|---|---:|---:|
-| **Construction** | Greedy 2-regret | 73932 | 48210 |
-| **Local Search (A5)** | M1 (Steepest 2-edge, random) | 73932.8 (72398 – 76332) | 48209.6 (45809 – 50501) |
-| **Local Search (A5)** | M7 (Steepest both, random) | 74444.5 (72344 – 76926) | 49121.1 (47372 – 50865) |
-| **Local Search (A5)** | List of Moves | 74286.3 (72344 – 76059) | 49000.7 (47766 – 51437) |
-| **MSLS (A6)** | MSLS | 74286.3 (72344 – 76059) | 49000.7 (47766 – 51437) |
-| **ILS (A6)** | **ILS (Best Overall)** | **73736.9 (71906 – 77662)** | **48414.7 (45809 – 50501)** |
-
-### Best Solutions Found Across All Assignments
-
-| Instance | Best Cost | Method | Assignment |
-|---|---:|---|---|
-| **TSPA** | **71906** | **ILS** | **Assignment 6** |
-| **TSPB** | **45809** | **M1 / ILS** | **Assignment 5 / 6** |
 
 ---
 
@@ -284,6 +290,19 @@ Despite 13-19× fewer local search calls, ILS achieves better solution quality t
 - TSPA: 73932 → 71906 = 2026 units (2.7% improvement)
 - TSPB: 48210 → 45809 = 2401 units (5.0% improvement)
 
+## Comparison with Best Local Search
+
+**Best LS method**: List of moves Steepest descent
+- TSPA: 74444.5 avg (70453 min)
+- TSPB: 49121.1 avg (45898 min)
+
+**MSLS vs Best LS:**
+- TSPA: 0.2% improvement in avg, 2.9% improvement in best
+- TSPB: 0.2% deterioration in avg, 4.4% improvement in best
+
+**ILS vs Best LS:**
+- TSPA: 0.9% improvement in avg, 2.1% improvement in best
+- TSPB: 1.4% improvement in avg, 0.2% improvement in best
 ---
 
 ## Conclusions
@@ -331,3 +350,6 @@ The visualizations clearly demonstrate the structural differences between soluti
 ### Link to Source Code
 
 [Assignment 6 - GitHub Repository](https://github.com/Strajkerr/EvolutionaryComputing/tree/main/Assignment_6)
+
+---
+
