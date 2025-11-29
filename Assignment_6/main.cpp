@@ -394,54 +394,34 @@ void M_Steepest_LM_RandomStart(
     std::cout << "\n";
 }
 
-// Perturbation function: Destroys and rebuilds part of the solution
-std::vector<int> perturbSolution(
+// Simple perturbation function: Apply random 2-opt moves (kicks)
+std::vector<int> perturbSolution_Simple(
     const std::vector<int> &solution,
     int **distanceMatrix,
     const std::vector<int> &costVector,
-    int totalNodes,
     std::mt19937 &g,
-    double destructionRatio = 0.3)
+    int numKicks = 10)
 {
-    int n = solution.size();
-    int numToRemove = std::max(2, static_cast<int>(n * destructionRatio));
-    
     std::vector<int> perturbed = solution;
-    std::vector<int> pos(totalNodes, -1);
-    for(int i=0; i<n; ++i) pos[perturbed[i]] = i;
+    int n = perturbed.size();
     
-    // Remove random nodes
-    std::vector<int> removed;
-    std::uniform_int_distribution<int> indexDist(0, perturbed.size() - 1);
+    // Rename distribution to avoid conflict with dist macro
+    std::uniform_int_distribution<int> indexDist(0, n - 1);
     
-    for (int i = 0; i < numToRemove; ++i) {
-        int idx = indexDist(g);
-        removed.push_back(perturbed[idx]);
-        pos[perturbed[idx]] = -1;
-        perturbed.erase(perturbed.begin() + idx);
-        if (!perturbed.empty() && indexDist.param().b() >= (int)perturbed.size()) {
-            indexDist = std::uniform_int_distribution<int>(0, perturbed.size() - 1);
-        }
-    }
-    
-    // Update positions
-    for(int i=0; i<(int)perturbed.size(); ++i) pos[perturbed[i]] = i;
-    
-    // Greedy reinsert: find best position for each removed node
-    for (int node : removed) {
-        int bestPos = 0;
-        int bestCost = std::numeric_limits<int>::max();
+    // Apply random 2-opt moves (edge reversals)
+    for (int k = 0; k < numKicks; ++k) {
+        int i = indexDist(g);
+        int j = indexDist(g);
         
-        for (int p = 0; p <= (int)perturbed.size(); ++p) {
-            perturbed.insert(perturbed.begin() + p, node);
-            int costValue = evaluateSolution(perturbed, distanceMatrix, costVector);
-            if (costValue < bestCost) {
-                bestCost = costValue;
-                bestPos = p;
-            }
-            perturbed.erase(perturbed.begin() + p);
+        // Ensure i != j and not adjacent
+        while (i == j || std::abs(i - j) == 1 || (i == 0 && j == n-1) || (i == n-1 && j == 0)) {
+            j = indexDist(g);
         }
-        perturbed.insert(perturbed.begin() + bestPos, node);
+        
+        if (i > j) std::swap(i, j);
+        
+        // Reverse segment [i+1, j]
+        reverseCircularSegment(perturbed, i + 1, j);
     }
     
     return perturbed;
@@ -566,22 +546,22 @@ void ILS_Steepest_LM(
         int runBestCost = currentCost;
         std::vector<int> runBestSolution = currentSolution;
         
-        // ILS loop
+        // ILS loop with simple perturbation
         while (true) {
             auto currentTime = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = currentTime - runStartTime;
             if (timeLimitPerRun > 0 && elapsed.count() >= timeLimitPerRun) break;
             
-            // Perturb
-            std::vector<int> perturbedSolution = perturbSolution(
-                currentSolution, distanceMatrix, costVector, size, g, 0.3);
+            // SIMPLE PERTURBATION: Apply random 2-opt kicks (NOT destroy-repair)
+            std::vector<int> perturbedSolution = perturbSolution_Simple(
+                currentSolution, distanceMatrix, costVector, g, 10);
             
             // Apply LS
             applyLS(perturbedSolution, runLSCount);
             int perturbedCost = evaluateSolution(perturbedSolution, distanceMatrix, costVector);
             
-            // Acceptance criterion: accept if better or equal (to allow exploration)
-            if (perturbedCost <= currentCost) {
+            // Acceptance criterion: accept if better
+            if (perturbedCost < currentCost) {
                 currentSolution = perturbedSolution;
                 currentCost = perturbedCost;
                 
