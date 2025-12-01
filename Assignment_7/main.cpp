@@ -355,9 +355,6 @@ std::vector<int> destroySolution(
     return destroyed;
 }
 
-// TODO FOR JAKUB: Implement alternative destroy operator
-// This should remove nodes based on their cost (expensive nodes more likely to be removed)
-// Use probabilistic selection: probability proportional to node cost
 std::vector<int> destroySolution_CostBased(
     const std::vector<int> &solution,
     int **distanceMatrix,
@@ -365,18 +362,31 @@ std::vector<int> destroySolution_CostBased(
     std::mt19937 &g,
     double destructionRatio = 0.3)
 {
-    // TODO: Implement cost-based destruction
-    // Hints:
-    // 1. Calculate numToRemove (same as random version)
-    // 2. For each node in solution, calculate probability based on its cost
-    // 3. Use std::discrete_distribution with probabilities
-    // 4. Remove nodes according to probabilities
-    // 5. Return destroyed solution
-    
+    // Task: Remove nodes based on their cost (expensive nodes more likely)
     std::vector<int> destroyed = solution;
     int numToRemove = std::max(2, static_cast<int>(solution.size() * destructionRatio));
     
-    // YOUR CODE HERE
+    // We will select nodes to remove until we meet numToRemove
+    for (int k = 0; k < numToRemove && !destroyed.empty(); ++k) {
+        // 1. Build weights vector for CURRENT nodes in solution
+        std::vector<double> weights;
+        weights.reserve(destroyed.size());
+        
+        // Probability is proportional to node cost
+        for (int node : destroyed) {
+            // Add a small epsilon to ensure non-zero probability if cost is 0
+            weights.push_back(static_cast<double>(costVector[node]) + 0.1);
+        }
+        
+        // 2. Create distribution
+        std::discrete_distribution<> d(weights.begin(), weights.end());
+        
+        // 3. Pick an index to remove
+        int idxToRemove = d(g);
+        
+        // 4. Remove
+        destroyed.erase(destroyed.begin() + idxToRemove);
+    }
     
     return destroyed;
 }
@@ -424,8 +434,6 @@ std::vector<int> repairSolution(
     return repaired;
 }
 
-// TODO FOR JAKUB: Implement 2-regret repair operator
-// Use 2-regret heuristic from Assignment 2
 std::vector<int> repairSolution_Regret(
     const std::vector<int> &partialSolution,
     int **distanceMatrix,
@@ -433,29 +441,96 @@ std::vector<int> repairSolution_Regret(
     int totalNodes,
     int targetSize)
 {
-    // TODO: Implement 2-regret repair
-    // Hints:
-    // 1. For each missing node, find best and second-best insertion positions
-    // 2. Calculate regret = second_best_cost - best_cost
-    // 3. Select node with highest regret
-    // 4. Insert at its best position
-    // 5. Repeat until solution is complete
-    
     std::vector<int> repaired = partialSolution;
     std::vector<bool> inSolution(totalNodes, false);
     for (int node : repaired) inSolution[node] = true;
     
-    // YOUR CODE HERE
+    // Continue until we reach target size
+    while ((int)repaired.size() < targetSize) {
+        
+        int bestNode = -1;
+        int maxRegret = -1;
+        int bestPosForBestNode = -1;
+
+        // Iterate over all candidate nodes not in the solution
+        for (int node = 0; node < totalNodes; ++node) {
+            if (inSolution[node]) continue;
+
+            int bestIncrease = std::numeric_limits<int>::max();
+            int secondBestIncrease = std::numeric_limits<int>::max();
+            int currentBestPos = -1;
+
+            int n = repaired.size();
+            
+            // Evaluate all insertion positions for this node
+            for (int p = 0; p < n; ++p) {
+                int u = repaired[p];
+                int v = repaired[(p + 1) % n];
+                
+                // Cost increase = dist(u, node) + dist(node, v) - dist(u, v) + cost(node)
+                // Note: cost(node) is constant for all positions for this specific node,
+                // but required for accurate delta.
+                int increase = distanceMatrix[u][node] + distanceMatrix[node][v] 
+                             - distanceMatrix[u][v] + costVector[node];
+                
+                if (increase < bestIncrease) {
+                    secondBestIncrease = bestIncrease;
+                    bestIncrease = increase;
+                    currentBestPos = p;
+                } else if (increase < secondBestIncrease) {
+                    secondBestIncrease = increase;
+                }
+            }
+
+            // Calculate Regret (2-regret)
+            // Regret = (Cost of 2nd best choice) - (Cost of 1st best choice)
+            // If only 1 spot available (unlikely here but possible in logic), regret is 0 or -infinity
+            int regret = (secondBestIncrease == std::numeric_limits<int>::max()) 
+                         ? -1 // Or bestIncrease if we want to prioritize it, but typically 0
+                         : (secondBestIncrease - bestIncrease);
+
+            // We want to insert the node with the HIGHEST regret
+            // (The one that suffers most if we don't pick its best spot now)
+            if (regret > maxRegret) {
+                maxRegret = regret;
+                bestNode = node;
+                bestPosForBestNode = currentBestPos;
+            }
+        }
+
+        if (bestNode == -1) break; // Should not happen if targetSize is valid
+
+        // Insert the winner at its best position
+        // Note: insert(pos) inserts before the element at pos.
+        // In our loop, p corresponds to the edge starting at index p. 
+        // So we insert at p+1 relative to vector (effectively between p and p+1).
+        // Since vector insertion shifts, iterator logic:
+        // Inserting at index (p+1) puts it after p.
+        // Special case: circular buffer logic handled by (p+1)%n in calculation.
+        // For std::vector, we insert at `begin() + bestPosForBestNode + 1`
+        
+        // Actually, let's look at standard greedy:
+        // It inserts at `begin() + p`. This places element at index p, shifting old p to p+1.
+        // This splits edge (p-1, p).
+        // In the calculation above, we looked at edge (u, v) where u = repaired[p].
+        // This is the edge starting at p. So we want to insert AFTER p.
+        // Index to insert is p + 1.
+        
+        repaired.insert(repaired.begin() + bestPosForBestNode + 1, bestNode);
+        inSolution[bestNode] = true;
+    }
     
     return repaired;
 }
 
 // ==================== LNS IMPLEMENTATIONS ====================
 
-void LNS_WithLS(
+// Renamed and modified to support both LS and NO-LS modes
+void runLNS(
     int **distanceMatrix,
     std::vector<int> &costVector,
     int size,
+    bool enableLS, 
     int totalRuns = 20,
     double timeLimitPerRun = 13.35)
 {
@@ -477,10 +552,13 @@ void LNS_WithLS(
         int iterations = 0;
         auto runStartTime = std::chrono::high_resolution_clock::now();
         
-        // Initial random solution + LS
+        // Initial random solution
         std::vector<int> currentSolution = randomPermutation(size, g);
         int targetSize = currentSolution.size();
+        
+        // PDF Requirement [20]: Always apply local search to the initial solution
         applySteepestLS(currentSolution, distanceMatrix, costVector, size);
+        
         int currentCost = evaluateSolution(currentSolution, distanceMatrix, costVector);
         int runBestCost = currentCost;
         std::vector<int> runBestSolution = currentSolution;
@@ -493,17 +571,21 @@ void LNS_WithLS(
             
             iterations++;
             
-            // Destroy
-            std::vector<int> destroyed = destroySolution(currentSolution, distanceMatrix, costVector, g, 0.3);
+            // Destroy (Use Cost-Based as per hint for better results, or randomize operators)
+            // Using CostBased as requested for implementation tasks
+            std::vector<int> destroyed = destroySolution_CostBased(currentSolution, distanceMatrix, costVector, g, 0.3);
             
-            // Repair
-            std::vector<int> repaired = repairSolution(destroyed, distanceMatrix, costVector, size, targetSize);
+            // Repair (Use Regret heuristic as requested)
+            std::vector<int> repaired = repairSolution_Regret(destroyed, distanceMatrix, costVector, size, targetSize);
             
-            // Local Search
-            applySteepestLS(repaired, distanceMatrix, costVector, size);
+            // Optional Local Search
+            if (enableLS) {
+                applySteepestLS(repaired, distanceMatrix, costVector, size);
+            }
+            
             int repairedCost = evaluateSolution(repaired, distanceMatrix, costVector);
             
-            // Acceptance criterion: accept if better
+            // Acceptance criterion: accept if better (Simple Hill Climbing LNS)
             if (repairedCost < currentCost) {
                 currentSolution = repaired;
                 currentCost = repairedCost;
@@ -528,7 +610,7 @@ void LNS_WithLS(
     auto endTime = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = endTime - globalStartTime;
     
-    std::cout << "====== LNS with Local Search ======\n";
+    std::cout << "====== LNS " << (enableLS ? "WITH" : "WITHOUT") << " Local Search ======\n";
     std::cout << "  runs = " << totalRuns << "\n";
     std::cout << "  min = " << bestObjective << "\n";
     std::cout << "  max = " << worstObjective << "\n";
@@ -551,13 +633,17 @@ void LNS_WithLS(
 
 int main()
 {
-    std::vector<std::string> fileNames = {"../TSPA.csv", "../TSPB.csv"};
+    // Make sure paths are correct relative to where you run the executable
+    std::vector<std::string> fileNames = {"TSPA.csv", "TSPB.csv"}; 
     for (const auto &FILE_NAME : fileNames)
     {
         std::vector<std::vector<int>> data;
         if (!getDataFromFile(FILE_NAME, data)) {
-            std::cerr << "Failed to open: " << FILE_NAME << "\n";
-            continue;
+            // Try parent directory if running from build folder
+            if (!getDataFromFile("../" + FILE_NAME, data)) {
+                std::cerr << "Failed to open: " << FILE_NAME << "\n";
+                continue;
+            }
         }
         
         int size = data.size();
@@ -570,7 +656,11 @@ int main()
         
         double timeLimit = (FILE_NAME.find("TSPA") != std::string::npos) ? 13.69 : 14.37;
         
-        LNS_WithLS(distanceMatrix, costVector, size, 20, timeLimit);
+        // 1. Run LNS with Local Search
+        runLNS(distanceMatrix, costVector, size, true, 20, timeLimit);
+
+        // 2. Run LNS without Local Search
+        runLNS(distanceMatrix, costVector, size, false, 20, timeLimit);
 
         for (int i = 0; i < size; i++)
             delete[] distanceMatrix[i];
