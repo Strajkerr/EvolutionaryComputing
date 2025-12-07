@@ -14,6 +14,7 @@
 #include <chrono>
 #include <numeric>
 #include <set>
+#include <iomanip>
 
 // ==================== DATA & HELPER FUNCTIONS ====================
 
@@ -331,31 +332,6 @@ void applySteepestLS(
 
 // ==================== DESTROY & REPAIR OPERATORS ====================
 
-std::vector<int> destroySolution(
-    const std::vector<int> &solution,
-    int **distanceMatrix,
-    const std::vector<int> &costVector,
-    std::mt19937 &g,
-    double destructionRatio = 0.3)
-{
-    int n = solution.size();
-    int numToRemove = std::max(2, static_cast<int>(n * destructionRatio));
-    
-    std::vector<int> destroyed = solution;
-    std::uniform_int_distribution<int> indexDist(0, destroyed.size() - 1);
-    
-    // Remove random nodes
-    for (int i = 0; i < numToRemove && !destroyed.empty(); ++i) {
-        int idx = indexDist(g);
-        destroyed.erase(destroyed.begin() + idx);
-        if (!destroyed.empty() && indexDist.param().b() >= (int)destroyed.size()) {
-            indexDist = std::uniform_int_distribution<int>(0, destroyed.size() - 1);
-        }
-    }
-    
-    return destroyed;
-}
-
 std::vector<int> destroySolution_CostBased(
     const std::vector<int> &solution,
     int **distanceMatrix,
@@ -363,76 +339,22 @@ std::vector<int> destroySolution_CostBased(
     std::mt19937 &g,
     double destructionRatio = 0.3)
 {
-    // Task: Remove nodes based on their cost (expensive nodes more likely)
     std::vector<int> destroyed = solution;
     int numToRemove = std::max(2, static_cast<int>(solution.size() * destructionRatio));
     
-    // We will select nodes to remove until we meet numToRemove
     for (int k = 0; k < numToRemove && !destroyed.empty(); ++k) {
-        // 1. Build weights vector for CURRENT nodes in solution
         std::vector<double> weights;
         weights.reserve(destroyed.size());
         
-        // Probability is proportional to node cost
         for (int node : destroyed) {
-            // Add a small epsilon to ensure non-zero probability if cost is 0
             weights.push_back(static_cast<double>(costVector[node]) + 0.1);
         }
         
-        // 2. Create distribution
         std::discrete_distribution<> d(weights.begin(), weights.end());
-        
-        // 3. Pick an index to remove
         int idxToRemove = d(g);
-        
-        // 4. Remove
         destroyed.erase(destroyed.begin() + idxToRemove);
     }
-    
     return destroyed;
-}
-
-std::vector<int> repairSolution(
-    const std::vector<int> &partialSolution,
-    int **distanceMatrix,
-    const std::vector<int> &costVector,
-    int totalNodes,
-    int targetSize)
-{
-    std::vector<int> repaired = partialSolution;
-    std::vector<bool> inSolution(totalNodes, false);
-    for (int node : repaired) inSolution[node] = true;
-    
-    // Greedy insertion with best position
-    while ((int)repaired.size() < targetSize) {
-        int bestNode = -1;
-        int bestPos = -1;
-        int bestCost = std::numeric_limits<int>::max();
-        
-        // Try all nodes not in solution
-        for (int node = 0; node < totalNodes; ++node) {
-            if (inSolution[node]) continue;
-            
-            // Try all positions
-            for (int p = 0; p <= (int)repaired.size(); ++p) {
-                repaired.insert(repaired.begin() + p, node);
-                int costValue = evaluateSolution(repaired, distanceMatrix, costVector);
-                if (costValue < bestCost) {
-                    bestCost = costValue;
-                    bestNode = node;
-                    bestPos = p;
-                }
-                repaired.erase(repaired.begin() + p);
-            }
-        }
-        
-        if (bestNode == -1) break;
-        
-        repaired.insert(repaired.begin() + bestPos, bestNode);
-        inSolution[bestNode] = true;
-    }
-    
-    return repaired;
 }
 
 std::vector<int> repairSolution_Regret(
@@ -446,14 +368,12 @@ std::vector<int> repairSolution_Regret(
     std::vector<bool> inSolution(totalNodes, false);
     for (int node : repaired) inSolution[node] = true;
     
-    // Continue until we reach target size
     while ((int)repaired.size() < targetSize) {
         
         int bestNode = -1;
         int maxRegret = -1;
         int bestPosForBestNode = -1;
 
-        // Iterate over all candidate nodes not in the solution
         for (int node = 0; node < totalNodes; ++node) {
             if (inSolution[node]) continue;
 
@@ -463,14 +383,10 @@ std::vector<int> repairSolution_Regret(
 
             int n = repaired.size();
             
-            // Evaluate all insertion positions for this node
             for (int p = 0; p < n; ++p) {
                 int u = repaired[p];
                 int v = repaired[(p + 1) % n];
                 
-                // Cost increase = dist(u, node) + dist(node, v) - dist(u, v) + cost(node)
-                // Note: cost(node) is constant for all positions for this specific node,
-                // but required for accurate delta.
                 int increase = distanceMatrix[u][node] + distanceMatrix[node][v] 
                              - distanceMatrix[u][v] + costVector[node];
                 
@@ -483,15 +399,9 @@ std::vector<int> repairSolution_Regret(
                 }
             }
 
-            // Calculate Regret (2-regret)
-            // Regret = (Cost of 2nd best choice) - (Cost of 1st best choice)
-            // If only 1 spot available (unlikely here but possible in logic), regret is 0 or -infinity
             int regret = (secondBestIncrease == std::numeric_limits<int>::max()) 
-                         ? -1 // Or bestIncrease if we want to prioritize it, but typically 0
-                         : (secondBestIncrease - bestIncrease);
+                         ? -1 : (secondBestIncrease - bestIncrease);
 
-            // We want to insert the node with the HIGHEST regret
-            // (The one that suffers most if we don't pick its best spot now)
             if (regret > maxRegret) {
                 maxRegret = regret;
                 bestNode = node;
@@ -499,144 +409,75 @@ std::vector<int> repairSolution_Regret(
             }
         }
 
-        if (bestNode == -1) break; // Should not happen if targetSize is valid
-
-        // Insert the winner at its best position
-        // Note: insert(pos) inserts before the element at pos.
-        // In our loop, p corresponds to the edge starting at p. 
-        // So we insert at p+1 relative to vector (effectively between p and p+1).
-        // Since vector insertion shifts, iterator logic:
-        // Inserting at index (p+1) puts it after p.
-        // Special case: circular buffer logic handled by (p+1)%n in calculation.
-        // For std::vector, we insert at `begin() + bestPosForBestNode + 1`
-        
-        // Actually, let's look at standard greedy:
-        // It inserts at `begin() + p`. This places element at index p, shifting old p to p+1.
-        // This splits edge (p-1, p).
-        // In the calculation above, we looked at edge (u, v) where u = repaired[p].
-        // This is the edge starting at p. So we want to insert AFTER p.
-        // Index to insert is p + 1.
-        
+        if (bestNode == -1) break;
         repaired.insert(repaired.begin() + bestPosForBestNode + 1, bestNode);
         inSolution[bestNode] = true;
     }
-    
     return repaired;
 }
 
-// ==================== LNS IMPLEMENTATIONS ====================
+// ==================== LNS ====================
 
-// Renamed and modified to support both LS and NO-LS modes
-void runLNS(
+// Modifed to return the best solution found
+std::vector<int> runLNS(
     int **distanceMatrix,
-    std::vector<int> &costVector,
+    const std::vector<int> &costVector,
     int size,
     bool enableLS, 
-    int totalRuns = 20,
-    double timeLimitPerRun = 13.35)
+    double timeLimit)
 {
     std::random_device rd;
     std::mt19937 g(rd());
 
-    long long totalSum = 0;
-    int bestObjective = std::numeric_limits<int>::max();
-    int worstObjective = std::numeric_limits<int>::min();
-    std::vector<int> bestSolution;
+    std::vector<int> currentSolution = randomPermutation(size, g);
+    applySteepestLS(currentSolution, distanceMatrix, costVector, size);
     
-    int totalIterations = 0;
-    std::vector<int> iterationsPerRun;
-    
-    auto globalStartTime = std::chrono::high_resolution_clock::now();
+    int currentCost = evaluateSolution(currentSolution, distanceMatrix, costVector);
+    int runBestCost = currentCost;
+    std::vector<int> runBestSolution = currentSolution;
+    int targetSize = currentSolution.size();
 
-    for (int run = 0; run < totalRuns; ++run)
-    {
-        int iterations = 0;
-        auto runStartTime = std::chrono::high_resolution_clock::now();
+    auto runStartTime = std::chrono::high_resolution_clock::now();
+
+    while (true) {
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = currentTime - runStartTime;
+        if (elapsed.count() >= timeLimit) break;
         
-        // Initial random solution
-        std::vector<int> currentSolution = randomPermutation(size, g);
-        int targetSize = currentSolution.size();
+        std::vector<int> destroyed = destroySolution_CostBased(currentSolution, distanceMatrix, costVector, g, 0.3);
+        std::vector<int> repaired = repairSolution_Regret(destroyed, distanceMatrix, costVector, size, targetSize);
         
-        // PDF Requirement [20]: Always apply local search to the initial solution
-        applySteepestLS(currentSolution, distanceMatrix, costVector, size);
-        
-        int currentCost = evaluateSolution(currentSolution, distanceMatrix, costVector);
-        int runBestCost = currentCost;
-        std::vector<int> runBestSolution = currentSolution;
-        
-        // LNS loop
-        while (true) {
-            auto currentTime = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed = currentTime - runStartTime;
-            if (elapsed.count() >= timeLimitPerRun) break;
-            
-            iterations++;
-            
-            // Destroy (Use Cost-Based as per hint for better results, or randomize operators)
-            // Using CostBased as requested for implementation tasks
-            std::vector<int> destroyed = destroySolution_CostBased(currentSolution, distanceMatrix, costVector, g, 0.3);
-            
-            // Repair (Use Regret heuristic as requested)
-            std::vector<int> repaired = repairSolution_Regret(destroyed, distanceMatrix, costVector, size, targetSize);
-            
-            // Optional Local Search
-            if (enableLS) {
-                applySteepestLS(repaired, distanceMatrix, costVector, size);
-            }
-            
-            int repairedCost = evaluateSolution(repaired, distanceMatrix, costVector);
-            
-            // Acceptance criterion: accept if better (Simple Hill Climbing LNS)
-            if (repairedCost < currentCost) {
-                currentSolution = repaired;
-                currentCost = repairedCost;
-                
-                if (currentCost < runBestCost) {
-                    runBestCost = currentCost;
-                    runBestSolution = currentSolution;
-                }
-            }
+        if (enableLS) {
+            applySteepestLS(repaired, distanceMatrix, costVector, size);
         }
         
-        iterationsPerRun.push_back(iterations);
-        totalIterations += iterations;
-        totalSum += runBestCost;
-        if (runBestCost < bestObjective) {
-            bestObjective = runBestCost;
-            bestSolution = runBestSolution;
+        int repairedCost = evaluateSolution(repaired, distanceMatrix, costVector);
+        
+        if (repairedCost < currentCost) {
+            currentSolution = repaired;
+            currentCost = repairedCost;
+            
+            if (currentCost < runBestCost) {
+                runBestCost = currentCost;
+                runBestSolution = currentSolution;
+            }
         }
-        if (runBestCost > worstObjective) worstObjective = runBestCost;
     }
-
-    auto endTime = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = endTime - globalStartTime;
-    
-    std::cout << "====== LNS " << (enableLS ? "WITH" : "WITHOUT") << " Local Search ======\n";
-    std::cout << "  runs = " << totalRuns << "\n";
-    std::cout << "  min = " << bestObjective << "\n";
-    std::cout << "  max = " << worstObjective << "\n";
-    std::cout << "  avg = " << (double)totalSum / totalRuns << "\n";
-    std::cout << "Execution time: " << elapsed.count() << " s\n";
-    std::cout << "Average time per run: " << elapsed.count() / totalRuns << " s\n";
-    std::cout << "Total iterations: " << totalIterations << "\n";
-    std::cout << "Average iterations per run: " << (double)totalIterations / totalRuns << "\n";
-    std::cout << "\nIterations per run: ";
-    for (int count : iterationsPerRun) {
-        std::cout << count << " ";
-    }
-    std::cout << "\n\nBest solution: ";
-    for (auto node : bestSolution) {
-        std::cout << node << " ";
-    }
-    std::cout << "\n\n";
+    return runBestSolution;
 }
 
-// ==================== SIMILARITY ANALYSIS ====================
+// ==================== OPTIMIZED SIMILARITY & ANALYSIS ====================
 
-// Calculate similarity between two solutions (common nodes / total nodes in either)
-double calculateSimilarity(const std::vector<int> &sol1, const std::vector<int> &sol2)
+// [cite: 7] Jaccard Similarity for Nodes
+double calculateNodeSimilarity(const std::vector<int> &sol1, const std::vector<int> &sol2)
 {
-    std::vector<bool> inSol1(200, false); // Assuming max 200 nodes
+    // O(N) using boolean array
+    static std::vector<bool> inSol1;
+    if (inSol1.size() < 200) inSol1.resize(200, false); // Adjust size if needed
+    
+    // Clear array
+    std::fill(inSol1.begin(), inSol1.end(), false);
+
     for (int node : sol1) inSol1[node] = true;
     
     int commonNodes = 0;
@@ -644,162 +485,196 @@ double calculateSimilarity(const std::vector<int> &sol1, const std::vector<int> 
         if (inSol1[node]) commonNodes++;
     }
     
-    // Jaccard similarity: intersection / union
+    // Union = Size1 + Size2 - Intersection
     int unionSize = sol1.size() + sol2.size() - commonNodes;
     return (unionSize > 0) ? (double)commonNodes / unionSize : 0.0;
 }
 
-// Alternative: Edge-based similarity
-double calculateEdgeSimilarity(const std::vector<int> &sol1, const std::vector<int> &sol2)
-{
-    std::set<std::pair<int, int>> edges1, edges2;
-    
-    for (size_t i = 0; i < sol1.size(); ++i) {
-        int u = sol1[i];
-        int v = sol1[(i + 1) % sol1.size()];
-        edges1.insert({std::min(u, v), std::max(u, v)});
+// [cite: 7, 9] Similarity for Edges
+// Optimization: Return sorted edges vector to allow fast intersection
+using Edge = std::pair<int, int>;
+std::vector<Edge> getSortedEdges(const std::vector<int>& sol) {
+    std::vector<Edge> edges;
+    edges.reserve(sol.size());
+    for(size_t i=0; i<sol.size(); ++i) {
+        int u = sol[i];
+        int v = sol[(i+1)%sol.size()];
+        if(u > v) std::swap(u, v);
+        edges.push_back({u, v});
     }
-    
-    for (size_t i = 0; i < sol2.size(); ++i) {
-        int u = sol2[i];
-        int v = sol2[(i + 1) % sol2.size()];
-        edges2.insert({std::min(u, v), std::max(u, v)});
-    }
-    
-    int commonEdges = 0;
-    for (const auto &edge : edges1) {
-        if (edges2.count(edge)) commonEdges++;
-    }
-    
-    int unionSize = edges1.size() + edges2.size() - commonEdges;
-    return (unionSize > 0) ? (double)commonEdges / unionSize : 0.0;
+    std::sort(edges.begin(), edges.end());
+    return edges;
 }
 
-void analyzeSimilarity(
+double calculateEdgeSimilarity(const std::vector<Edge> &edges1, const std::vector<Edge> &edges2)
+{
+    int common = 0;
+    size_t i = 0, j = 0;
+    while(i < edges1.size() && j < edges2.size()) {
+        if(edges1[i] < edges2[j]) i++;
+        else if(edges2[j] < edges1[i]) j++;
+        else {
+            common++;
+            i++;
+            j++;
+        }
+    }
+    
+    int unionSize = edges1.size() + edges2.size() - common;
+    return (unionSize > 0) ? (double)common / unionSize : 0.0;
+}
+
+//  Pearson Correlation Coefficient
+double calculateCorrelation(const std::vector<double>& x, const std::vector<double>& y) {
+    if(x.size() != y.size() || x.empty()) return 0.0;
+    double n = x.size();
+    double sumX = 0, sumY = 0, sumXY = 0;
+    double sumX2 = 0, sumY2 = 0;
+
+    for(size_t i=0; i<n; ++i) {
+        sumX += x[i];
+        sumY += y[i];
+        sumXY += x[i] * y[i];
+        sumX2 += x[i] * x[i];
+        sumY2 += y[i] * y[i];
+    }
+
+    double numerator = n * sumXY - sumX * sumY;
+    double denominator = std::sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+
+    if(denominator == 0) return 0.0;
+    return numerator / denominator;
+}
+
+void performGlobalConvexityTest(
+    const std::string &instanceName,
     int **distanceMatrix,
     std::vector<int> &costVector,
-    int size,
-    int numLocalOptima = 1000,
-    bool useEdgeSimilarity = false)
+    int size)
 {
-    std::random_device rd;
-    std::mt19937 g(rd());
-    
-    std::cout << "Generating " << numLocalOptima << " random local optima...\n";
-    
+    std::cout << "Starting analysis for " << instanceName << "...\n";
+    std::mt19937 g(std::random_device{}());
+
+    // 1.  Generate a "Very Good Solution" using LNS (Best method so far)
+    std::cout << "  Generating Reference Solution (LNS)...\n";
+    double lnsTime = (instanceName.find("TSPA") != std::string::npos) ? 4.0 : 4.0; // Short run for reference
+    std::vector<int> globalBestSol = runLNS(distanceMatrix, costVector, size, true, lnsTime);
+    int globalBestCost = evaluateSolution(globalBestSol, distanceMatrix, costVector);
+    std::vector<Edge> globalBestEdges = getSortedEdges(globalBestSol);
+    std::cout << "  Global Reference Cost: " << globalBestCost << "\n";
+
+    // 2.  Generate 1000 Random Local Optima
+    std::cout << "  Generating 1000 Local Optima...\n";
+    int numSamples = 1000;
     std::vector<std::vector<int>> localOptima;
     std::vector<int> costs;
-    localOptima.reserve(numLocalOptima);
-    costs.reserve(numLocalOptima);
-    
-    int bestCost = std::numeric_limits<int>::max();
-    int bestIdx = -1;
-    
-    // Generate local optima
-    for (int i = 0; i < numLocalOptima; ++i) {
-        if ((i + 1) % 100 == 0) {
-            std::cout << "  Generated " << (i + 1) << " local optima...\n";
-        }
-        
-        std::vector<int> solution = randomPermutation(size, g);
-        applySteepestLS(solution, distanceMatrix, costVector, size);
-        
-        int cost = evaluateSolution(solution, distanceMatrix, costVector);
-        localOptima.push_back(solution);
-        costs.push_back(cost);
-        
-        if (cost < bestCost) {
-            bestCost = cost;
-            bestIdx = i;
+    localOptima.reserve(numSamples);
+    costs.reserve(numSamples);
+
+    int bestLOCost = std::numeric_limits<int>::max();
+    int bestLOIdx = -1;
+
+    for(int i=0; i<numSamples; ++i) {
+        std::vector<int> sol = randomPermutation(size, g);
+        applySteepestLS(sol, distanceMatrix, costVector, size);
+        int c = evaluateSolution(sol, distanceMatrix, costVector);
+        localOptima.push_back(sol);
+        costs.push_back(c);
+
+        if(c < bestLOCost) {
+            bestLOCost = c;
+            bestLOIdx = i;
         }
     }
-    
-    std::cout << "\nBest local optimum cost: " << bestCost << " (index: " << bestIdx << ")\n";
-    
-    // Calculate statistics
-    int minCost = *std::min_element(costs.begin(), costs.end());
-    int maxCost = *std::max_element(costs.begin(), costs.end());
-    double avgCost = std::accumulate(costs.begin(), costs.end(), 0.0) / costs.size();
-    
-    std::cout << "Cost statistics:\n";
-    std::cout << "  Min: " << minCost << "\n";
-    std::cout << "  Max: " << maxCost << "\n";
-    std::cout << "  Avg: " << avgCost << "\n\n";
-    
-    // Analysis 1: Similarity to best solution
-    std::cout << "=== Similarity to Best Solution ===\n";
-    std::vector<double> similarityToBest;
-    double avgSimToBest = 0.0;
-    
-    for (int i = 0; i < numLocalOptima; ++i) {
-        double sim = useEdgeSimilarity 
-            ? calculateEdgeSimilarity(localOptima[i], localOptima[bestIdx])
-            : calculateSimilarity(localOptima[i], localOptima[bestIdx]);
-        similarityToBest.push_back(sim);
-        avgSimToBest += sim;
+    std::vector<int> bestLOSol = localOptima[bestLOIdx];
+    std::vector<Edge> bestLOEdges = getSortedEdges(bestLOSol);
+
+    // Pre-calculate edges for all local optima to speed up pairwise comparison
+    std::vector<std::vector<Edge>> allEdges(numSamples);
+    for(int i=0; i<numSamples; ++i) {
+        allEdges[i] = getSortedEdges(localOptima[i]);
     }
-    avgSimToBest /= numLocalOptima;
-    
-    double minSimToBest = *std::min_element(similarityToBest.begin(), similarityToBest.end());
-    double maxSimToBest = *std::max_element(similarityToBest.begin(), similarityToBest.end());
-    
-    std::cout << "Similarity to best (using " << (useEdgeSimilarity ? "edges" : "nodes") << "):\n";
-    std::cout << "  Min: " << minSimToBest << "\n";
-    std::cout << "  Max: " << maxSimToBest << "\n";
-    std::cout << "  Avg: " << avgSimToBest << "\n\n";
-    
-    // Analysis 2: Average similarity to all other local optima
-    std::cout << "=== Average Similarity to All Other Solutions ===\n";
-    std::vector<double> avgSimilarityToOthers(numLocalOptima, 0.0);
-    
-    std::cout << "Calculating pairwise similarities...\n";
-    for (int i = 0; i < numLocalOptima; ++i) {
-        if ((i + 1) % 100 == 0) {
-            std::cout << "  Processed " << (i + 1) << " solutions...\n";
+
+    // 3. [cite: 3, 4, 7] Calculate Similarities
+    // Vectors to store results for CSV
+    std::vector<double> x_obj; 
+    std::vector<double> y_avg_nodes, y_bestLO_nodes, y_global_nodes;
+    std::vector<double> y_avg_edges, y_bestLO_edges, y_global_edges;
+
+    // Buffers for correlation calculation (filtering out self-comparison for BestLO)
+    std::vector<double> corr_x_bestLO, corr_y_bestLO_nodes, corr_y_bestLO_edges;
+
+    std::cout << "  Calculating Similarities...\n";
+    for(int i=0; i<numSamples; ++i) {
+        x_obj.push_back((double)costs[i]);
+
+        // A. Similarity to Global Best (LNS)
+        y_global_nodes.push_back(calculateNodeSimilarity(localOptima[i], globalBestSol));
+        y_global_edges.push_back(calculateEdgeSimilarity(allEdges[i], globalBestEdges));
+
+        // B. Similarity to Best of Local Optima
+        // [cite: 6] For correlation/charts involving "Best of LO", strictly exclude the best solution itself?
+        // Usually, we keep the array aligned for CSV, but filter for correlation calculation.
+        double simBestNode = calculateNodeSimilarity(localOptima[i], bestLOSol);
+        double simBestEdge = calculateEdgeSimilarity(allEdges[i], bestLOEdges);
+        y_bestLO_nodes.push_back(simBestNode);
+        y_bestLO_edges.push_back(simBestEdge);
+
+        if (i != bestLOIdx) {
+            corr_x_bestLO.push_back((double)costs[i]);
+            corr_y_bestLO_nodes.push_back(simBestNode);
+            corr_y_bestLO_edges.push_back(simBestEdge);
         }
-        
-        for (int j = 0; j < numLocalOptima; ++j) {
-            if (i != j) {
-                double sim = useEdgeSimilarity
-                    ? calculateEdgeSimilarity(localOptima[i], localOptima[j])
-                    : calculateSimilarity(localOptima[i], localOptima[j]);
-                avgSimilarityToOthers[i] += sim;
-            }
+
+        // C. Average Similarity to All Others
+        double sumSimNode = 0;
+        double sumSimEdge = 0;
+        for(int j=0; j<numSamples; ++j) {
+            if(i == j) continue;
+            sumSimNode += calculateNodeSimilarity(localOptima[i], localOptima[j]);
+            sumSimEdge += calculateEdgeSimilarity(allEdges[i], allEdges[j]);
         }
-        avgSimilarityToOthers[i] /= (numLocalOptima - 1);
+        y_avg_nodes.push_back(sumSimNode / (numSamples - 1));
+        y_avg_edges.push_back(sumSimEdge / (numSamples - 1));
     }
+
+    // 4.  Calculate Correlations
+    std::cout << "\n  === Correlations (" << instanceName << ") ===\n";
+    std::cout << std::fixed << std::setprecision(4);
     
-    double overallAvgSim = std::accumulate(avgSimilarityToOthers.begin(), 
-                                           avgSimilarityToOthers.end(), 0.0) / numLocalOptima;
-    double minAvgSim = *std::min_element(avgSimilarityToOthers.begin(), avgSimilarityToOthers.end());
-    double maxAvgSim = *std::max_element(avgSimilarityToOthers.begin(), avgSimilarityToOthers.end());
-    
-    std::cout << "\nAverage similarity to all others:\n";
-    std::cout << "  Min: " << minAvgSim << "\n";
-    std::cout << "  Max: " << maxAvgSim << "\n";
-    std::cout << "  Avg: " << overallAvgSim << "\n\n";
-    
-    // Correlation analysis: cost vs similarity to best
-    std::cout << "=== Correlation Analysis ===\n";
-    double sumCost = 0, sumSim = 0, sumCostSim = 0;
-    double sumCostSq = 0, sumSimSq = 0;
-    
-    for (int i = 0; i < numLocalOptima; ++i) {
-        double c = costs[i];
-        double s = similarityToBest[i];
-        sumCost += c;
-        sumSim += s;
-        sumCostSim += c * s;
-        sumCostSq += c * c;
-        sumSimSq += s * s;
+    // Avg Similarity
+    double r_avg_node = calculateCorrelation(x_obj, y_avg_nodes);
+    double r_avg_edge = calculateCorrelation(x_obj, y_avg_edges);
+    std::cout << "  1. Objective vs Avg Node Sim: " << r_avg_node << "\n";
+    std::cout << "  2. Objective vs Avg Edge Sim: " << r_avg_edge << "\n";
+
+    // Best of 1000 (excluding self)
+    double r_bestLO_node = calculateCorrelation(corr_x_bestLO, corr_y_bestLO_nodes);
+    double r_bestLO_edge = calculateCorrelation(corr_x_bestLO, corr_y_bestLO_edges);
+    std::cout << "  3. Objective vs Best-of-1000 Node Sim: " << r_bestLO_node << "\n";
+    std::cout << "  4. Objective vs Best-of-1000 Edge Sim: " << r_bestLO_edge << "\n";
+
+    // Global Best (LNS)
+    double r_global_node = calculateCorrelation(x_obj, y_global_nodes);
+    double r_global_edge = calculateCorrelation(x_obj, y_global_edges);
+    std::cout << "  5. Objective vs Global Best Node Sim: " << r_global_node << "\n";
+    std::cout << "  6. Objective vs Global Best Edge Sim: " << r_global_edge << "\n";
+
+    // 5.  Export to CSV
+    std::string csvName = instanceName + "_correlations.csv";
+    std::ofstream csv(csvName);
+    csv << "Objective,AvgSim_Nodes,BestLO_Nodes,Global_Nodes,AvgSim_Edges,BestLO_Edges,Global_Edges\n";
+    for(size_t k=0; k<x_obj.size(); ++k) {
+        csv << x_obj[k] << ","
+            << y_avg_nodes[k] << ","
+            << y_bestLO_nodes[k] << ","
+            << y_global_nodes[k] << ","
+            << y_avg_edges[k] << ","
+            << y_bestLO_edges[k] << ","
+            << y_global_edges[k] << "\n";
     }
-    
-    double correlation = (numLocalOptima * sumCostSim - sumCost * sumSim) /
-        std::sqrt((numLocalOptima * sumCostSq - sumCost * sumCost) *
-                  (numLocalOptima * sumSimSq - sumSim * sumSim));
-    
-    std::cout << "Correlation (cost vs similarity to best): " << correlation << "\n";
-    std::cout << "(Negative correlation means better solutions are more similar to best)\n\n";
+    csv.close();
+    std::cout << "  Data saved to " << csvName << "\n\n";
 }
 
 int main()
@@ -819,24 +694,8 @@ int main()
         int **distanceMatrix = getDistanceMatrix(data, size);
         std::vector<int> costVector = getCostVector(data);
         
-        std::cout << "\n========================================\n";
-        std::cout << "Processing: " << FILE_NAME << "\n";
-        std::cout << "========================================\n\n";
-        
-        // Run similarity analysis with node-based similarity
-        std::cout << "\n--- Node-based Similarity ---\n";
-        analyzeSimilarity(distanceMatrix, costVector, size, 1000, false);
-        
-        // Run similarity analysis with edge-based similarity
-        std::cout << "\n--- Edge-based Similarity ---\n";
-        analyzeSimilarity(distanceMatrix, costVector, size, 1000, true);
-        
-        // Original LNS experiments (commented out for now)
-        /*
-        double timeLimit = (FILE_NAME.find("TSPA") != std::string::npos) ? 13.69 : 14.37;
-        runLNS(distanceMatrix, costVector, size, true, 20, timeLimit);
-        runLNS(distanceMatrix, costVector, size, false, 20, timeLimit);
-        */
+        std::string instanceName = FILE_NAME.substr(0, FILE_NAME.find('.'));
+        performGlobalConvexityTest(instanceName, distanceMatrix, costVector, size);
 
         for (int i = 0; i < size; i++)
             delete[] distanceMatrix[i];
