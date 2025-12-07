@@ -130,7 +130,30 @@ For run = 1 to 20:
 
 **2. LNS without Local Search**
 ```pseudocode
-
+For run = 1 to 20:
+    currentSolution = random_permutation()
+    apply_local_search(currentSolution)  // Always apply to initial solution 
+    currentCost = evaluate(currentSolution)
+    iterations = 0
+    
+    While time_elapsed < timeLimit:
+        iterations++
+        
+        // Destroy phase
+        destroyed = destroy(currentSolution, 0.3)
+        
+        // Repair phase
+        repaired = repair(destroyed, targetSize)
+        
+        // NO Local Search inside the loop for this version
+        repairedCost = evaluate(repaired)
+        
+        // Acceptance
+        If repairedCost < currentCost:
+            currentSolution = repaired
+            currentCost = repairedCost
+    
+    Report best solution found in this run
 ```
 
 
@@ -142,17 +165,24 @@ For run = 1 to 20:
 
 | Instance | Runs | Avg (Min – Max) | Execution Time | Avg Iterations |
 |---|---:|---:|---:|---:|
-| TSPA | 20 | **[RUN EXPERIMENT]** | **[TIME]** s | **[ITER]** |
-| TSPB | 20 | **[RUN EXPERIMENT]** | **[TIME]** s | **[ITER]** |
+| TSPA | 20 | 70421.3 (69838 - 71291) | 13.6921 s | 3933.4 |
+| TSPB | 20 | 45217.9 (44747 - 45802) | 14.3721 s | 3864.05 |
 
 
 ### LNS without Local Search
 
 | Instance | Runs | Avg (Min – Max) | Execution Time | Avg Iterations |
 |---|---:|---:|---:|---:|
-| TSPA | 20 | **[RUN EXPERIMENT]** | **[TIME]** s | **[ITER]** |
-| TSPB | 20 | **[RUN EXPERIMENT]** | **[TIME]** s | **[ITER]** |
+| TSPA | 20 | 74375.2 (73178 - 76452) | 13.6915 s | 4954.7 |
+| TSPB | 20 | 49238.4 (47678 - 51419) | 14.3714 s | 5118.45 |
 
+![](../LNS_A.png)
+
+![](../LNS_NO_LS_A.png)
+
+![](../LNS_B.png)
+
+![](../LNS_NO_LS_B.png)
 
 ---
 
@@ -162,10 +192,10 @@ For run = 1 to 20:
 |---|---:|---:|
 | **Best Construction (NN Insertion)** | 71071.2 (69941 – 73650) | 44649.9 (43163 – 51497) |
 | **Best Local Search (List of Moves)** | 74444.5 (70453 - 79976) | 49121.1 (45898 - 52188) |
-| **MSLS (A6 corrected)** | 71483.2 (70876 – 71878) | 45807.9 (45011 – 46646) |
+| **MSLS** | 71483.2 (70876 – 71878) | 45807.9 (45011 – 46646) |
 | **ILS (A6 corrected)** | 73626.9 (70998 – 75350) | 47171.2 (44392 – 50455) |
-| **LNS with LS (A7)** | **[RUN EXPERIMENT]** | **[RUN EXPERIMENT]** |
-| **LNS without LS (A7)** | **[RUN EXPERIMENT]** | **[RUN EXPERIMENT]** |
+| **LNS with LS** | 70421.3 (69838 - 71291) | 45217.9 (44747 - 45802) |
+| **LNS without LS** | 74375.2 (73178 - 76452) | 49238.4 (47678 - 51419) |
 
 ### Best Solutions Comparison
 
@@ -174,9 +204,9 @@ For run = 1 to 20:
 | **Construction** | 69941 | 43163 |
 | **Local Search** | 70453 | 45898 |
 | **MSLS** | 70876 | 45011 |
-| **ILS (corrected)** | 70998 | **44392** ⭐ |
-| **LNS with LS** | **[RUN]** | **[RUN]** |
-| **LNS without LS** | **[RUN]** | **[RUN]** |
+| **ILS (corrected)** | 70998 | 44392 |
+| **LNS with LS** | 69838 | 44747 |
+| **LNS without LS** | 73178 | 47678 |
 
 
 ---
@@ -184,3 +214,47 @@ For run = 1 to 20:
 
 ## Conclusions
 
+1. The Critical Role of Local Search in LNS
+
+    The most significant finding is the drastic performance gap between LNS with Local Search and LNS without it.
+
+    LNS with LS yielded our best average results for TSPA (70421), significantly outperforming the version without LS (74375).
+
+    Reasoning: While the Greedy Repair operator constructs a feasible and reasonable path, it is not guaranteed to be locally optimal. It often leaves "crossing edges" or suboptimal sequences that the repair heuristic cannot foresee. The subsequent Steepest Local Search step is essential to "polish" the repaired solution, effectively combining the exploration of LNS with the exploitation of LS.
+
+    Trade-off: Although LNS without LS ran more iterations (approx. 5000 vs. 3900), the quality of each iteration in the LS version was vastly superior. Fewer, high-quality steps proved more effective than many lower-quality steps.
+
+2. Comparison with MSLS (Memory vs. Randomness)
+
+    LNS with LS outperformed MSLS on average for both instances (TSPA: 70421 vs 71483; TSPB: 45217 vs 45807).
+
+    MSLS relies on random restarts, meaning it has no "memory" of previous good structures; it searches blindly in different areas of the solution space.
+
+    LNS employs a "partial restart" strategy. By destroying only 30% of the solution, it preserves the high-quality subsequences found in previous iterations while modifying enough of the structure to escape local optima. This balance allows LNS to dig deeper into promising regions of the search space (intensification) rather than constantly starting over (diversification).
+
+3. Comparison with ILS
+
+    LNS functions similarly to Iterated Local Search (ILS), where the "Destroy-Repair" phase acts as a complex perturbation mechanism.
+
+    TSPA: LNS with LS provided a better average (70421) and best solution (69838) compared to the corrected ILS (Avg: 73626). This suggests that for the uniform distribution of TSPA, reconstructing a significant portion of the path is more effective than small 2-opt kicks.
+
+    TSPB: ILS with simple perturbation remains extremely competitive, finding the overall best solution (44392). However, LNS offers a better average (45217) than ILS (47171), indicating that LNS is a more stable and consistent method, even if ILS occasionally hits a "lucky" better minimum on clustered data.
+
+4. Effectiveness of the Destroy/Repair Operators
+
+    The Random Destroy (30%) coupled with Greedy Repair proved to be a robust mechanism.
+
+    Removing 30% of the nodes provided a sufficient "kick" to escape local optima without destroying the solution so thoroughly that the search reverted to a random restart.
+
+    The Greedy Repair operator ensures that the reconstruction is intelligent (minimizing immediate cost) rather than random, which helps the algorithm converge toward high-quality solutions faster than random insertion would.
+
+5. Summary
+
+    LNS with Local Search has proven to be the most robust metaheuristic implemented so far for TSPA, achieving the lowest average costs and the new personal best minimum (69838). While the simple Construction Heuristics from earlier assignments remain surprisingly hard to beat regarding their absolute "best" found values on TSPB, LNS offers superior consistency and average performance across runs.
+
+
+### Solutions were checked with Soultion Checker
+
+### Link to repository
+
+[Assignment 7 - GitHub Repository](https://github.com/Strajkerr/EvolutionaryComputing/tree/main/Assignment_7)
