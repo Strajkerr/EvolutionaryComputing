@@ -1,4 +1,4 @@
-# Assignment 7 - Large Neighborhood Search (LNS)
+# Assignment 8
 
 ### Prepared by
 
@@ -46,9 +46,9 @@ We analyzed the global structure of the solution space by examining 1000 random 
 | **TSPB** | To LNS | -0.6518 | -0.5353 |
 
 **Interpretation of Correlation:**
-- **Negative correlation** (< 0): Better solutions (lower cost) have higher similarity → global convexity
-- **Positive correlation** (> 0): Better solutions have lower similarity → multimodal landscape
-- **Near zero** (≈ 0): No clear relationship → random structure
+A value of -1.0 would mean a perfect line (impossible in complex problems).
+
+Values around -0.5 to -0.7 indicate a strong guide for the search process. It means that if your algorithm makes a solution more similar to the best known one, it is highly likely to improve its cost.
 
 #### Charts
 
@@ -57,15 +57,13 @@ We analyzed the global structure of the solution space by examining 1000 random 
 
 ### Observations
 
-Observations
-
 Confirmation of Global Convexity: Across all metrics for both TSPA and TSPB, we observe substantial negative correlations (ranging from -0.45 to -0.67). This statistically confirms the "Big Valley" structure: better local optima are not randomly distributed but are structurally closer to the global optimum and to each other.
 
 Node vs. Edge Importance: When measuring similarity against the Global Best solution, Node-based similarity consistently showed a stronger correlation (-0.67 for TSPA, -0.65 for TSPB) compared to Edge-based similarity (-0.55, -0.54). This suggests that identifying the correct subset of nodes is the primary driver of solution quality in this specific variant of the TSP.
 
 Average Similarity: Interestingly, when measuring the Average Similarity to Others, the Edge-based metric often showed a stronger correlation than the Node-based metric (e.g., -0.61 vs -0.48 for TSPB). This implies that while the specific node composition defines the "peak" of the valley, the broader basin of attraction shares many common edges.
 
-Conclusions
+### Conclusions
 
 The analysis provides strong evidence that the fitness landscapes for TSPA and TSPB are globally convex.
 
