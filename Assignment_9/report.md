@@ -111,6 +111,28 @@ Global Convexity Analysis for TSPA and TSPB showing strong correlation between c
 
 Comparing HEA_Op2 (Filter+LS) and HEA_Op2_NoLS, we see that adding Local Search yields better results (an improvement of ~1000 units on average). However, even with Local Search, Operator 2 cannot match the structural efficiency of Operator 1.
 
+### Best Solutions Visualization
+
+Below are the visualizations of the best solutions found by each method:
+
+#### HEA_Op1 (Common) - TSPA (Cost: 69,066)
+![HEA_Op1_A](HEA_Op1_A.png)
+
+#### HEA_Op1 (Common) - TSPB (Cost: 43,404)
+![HEA_Op1_B](HEA_Op1_B.png)
+
+#### HEA_Op2 (Filter+LS) - TSPA (Cost: 70,346)
+![HEA_Op2_A](HEA_Op2_A.png)
+
+#### HEA_Op2 (Filter+LS) - TSPB (Cost: 44,695)
+![HEA_Op2_B](HEA_Op2_B.png)
+
+#### HEA_Op2_NoLS (Filter) - TSPA (Cost: 71,047)
+![HEA_Op2_NoLS_A](HEA_Op2_NoLS_A.png)
+
+#### HEA_Op2_NoLS (Filter) - TSPB (Cost: 45,072)
+![HEA_Op2_NoLS_B](HEA_Op2_NoLS_B.png)
+
 ### Conclusions
 
 The Hybrid Evolutionary Algorithm with Operator 1 (Common Components) is the most effective method tested so far. Its success validates the "Big Valley" hypothesis for this problem: the best way to find the optimum is to combine the shared structural features of high-quality parents rather than relying on heuristic repair of partial solutions.
