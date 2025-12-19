@@ -136,3 +136,9 @@ Below are the visualizations of the best solutions found by each method:
 ### Conclusions
 
 The Hybrid Evolutionary Algorithm with Operator 1 (Common Components) is the most effective method tested so far. Its success validates the "Big Valley" hypothesis for this problem: the best way to find the optimum is to combine the shared structural features of high-quality parents rather than relying on heuristic repair of partial solutions.
+
+### Solutions were checked with solution checker
+
+### Repo
+
+[Assignment 9 - GitHub Repository](https://github.com/Strajkerr/EvolutionaryComputing/tree/main/Assignment_9)
